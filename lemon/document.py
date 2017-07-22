@@ -42,20 +42,27 @@ class Document(dict):
 
     def __getattr__(self,attr):
         return self[attr]
+
+    @classmethod
+    def aggregate(cls,*args,**kw):
+        return Aggregation(cls,*args,**kw)
     
 class Abc(Document):
     _textfmt='a={self.a}\tb={self.b}'
 
     
 async def main():
-    abc=Abc.objects(P.a>10)(P.a<=200)
-    async for i in abc:
+    #await batch(lambda x:Abc.insert({'a':x,'b':x+10}),range(20))
+    a=Abc.aggregate()
+    a.project(-P.id,P.a,P.b)
+    a.group(P.a,P.b.sum(1))
+    a.match(P.id>5)
+    a.sort(P.id)
+    a.skip(10)
+    a.limit(5)
+    async for i in a:
         print(i)
-    print('-'*20)
-    await Abc.objects(P.a>=12).update(P.b.inc(1))
-    async for i in abc:
-        print(i)
-        
+    
 start(main())
 
         

@@ -49,6 +49,9 @@ class BaseQuery(object):
     def delete(self):
         self.collection.delete_many(self.query)
 
+    def delete_one(self):
+        self.collection.delete_one(self.query)
+        
     @property
     def projection(self):
         projections=None
@@ -187,17 +190,11 @@ class Aggregation:
         self.pipeline=pipeline or []
         self.kw=kw or {}
 
-    def all(self):
-        '''返回所有值'''
-        return [i for i in self]
-        
-    def __iter__(self):
+    def __aiter__(self):
         '''迭代返回所有值'''
         return self.collection.aggregate(self.pipeline,**self.kw)
 
-    __call__=__iter__
-    
-    def paginate(self, page, per_page=20, error_out=True):
+    async def paginate(self, page, per_page=20, error_out=True):
         """Returns `per_page` items from page `page`.  By default it will
         abort with 404 if no items were found and the page was larger than
         1.  This behavor can be disabled by setting `error_out` to `False`.
@@ -208,8 +205,11 @@ class Aggregation:
             abort(404)
         pipeline=self.pipeline.copy()
         pipeline.append({'$skip':(page-1)*per_page})
-        items=[i for i in \
-               self.collection.aggregate(pipeline,**self.kw)]
+        items=[]
+        async for obj in self.collection.aggregate(pipeline,**self.kw):
+            items.append(obj)
+        # items=[i for i in \
+        #       self.collection.aggregate(pipeline,**self.kw)]
         total=(page-1)*per_page+len(items)
         items=items[:per_page]
         if not items and page != 1 and error_out:
@@ -250,7 +250,7 @@ class Aggregation:
             if isinstance(project,P):
                 _id.update({project._name:"$%s"%(project._name)})
             else:
-                kw.update(project)
+                kw.update(project.to_group())
         kw['_id']=_id.popitem()[-1] if len(_id)==1 else _id
         self.pipeline.append({'$group':kw})
         return self
