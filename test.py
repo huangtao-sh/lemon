@@ -1,2 +1,0 @@
-from lemon.document import *
-

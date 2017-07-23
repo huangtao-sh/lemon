@@ -42,7 +42,7 @@ class BaseQuery(object):
                 projection=self.projection,sort=self._sort)
         return obj and self.document(from_query=True,**obj)
 
-    async def first_or_404(self):
+    def first_or_404(self):
         obj=self.first()
         return obj or abort(404)
 
