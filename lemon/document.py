@@ -5,23 +5,27 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-07-22 09:52
 
-from motor.motor_asyncio import *
+from pymongo import *
 from .query import *
-from orange.coroutine import *
+from .config import *
 
 class Document(dict):
-    __config={}
     __db=None
+    __adb=None
     
     @classproperty
-    def _config(cls):
-        return Document.__config
-    
+    def _acollection(cls):
+        if Document.__adb is None:
+            from motor.motor_asyncio import AsyncIOMotorClient
+            client=AsyncIOMotorClient(**config())
+            Document.__adb=client.get_default_database()
+        return Document.__adb[convert_cls_name(cls.__name__)]
+
     @classproperty
     def _collection(cls):
         if Document.__db is None:
-            client=AsyncIOMotorClient(**cls._config)
-            Document.__db=client.test
+            client=MongoClient(**config())
+            Document.__db=client.get_default_database()
         return Document.__db[convert_cls_name(cls.__name__)]
 
     def __str__(self):
