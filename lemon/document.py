@@ -13,7 +13,7 @@ class Document(dict):
     __db=None
     __adb=None
     
-    @classproperty
+    @cachedproperty
     def _acollection(cls):
         if Document.__adb is None:
             from motor.motor_asyncio import AsyncIOMotorClient
@@ -21,7 +21,7 @@ class Document(dict):
             Document.__adb=client.get_default_database()
         return Document.__adb[convert_cls_name(cls.__name__)]
 
-    @classproperty
+    @cachedproperty
     def _collection(cls):
         if Document.__db is None:
             client=MongoClient(**config())
@@ -43,17 +43,6 @@ class Document(dict):
 
     drop_collection=drop
     
-    @classmethod
-    def insert(cls,*docs):
-        func=cls._collection.insert_one if len(docs)==1 else \
-          cls._collection.insert_many
-        return func(*docs)
-
-    @classmethod
-    def find(cls,q,**kw):
-        kw.update(q.to_query())
-        return cls._collection.find(kw)
-
     @classproperty
     def objects(cls):
         return BaseQuery(cls)
@@ -61,4 +50,20 @@ class Document(dict):
     @classmethod
     def aggregate(cls,*args,**kw):
         return Aggregation(cls,*args,**kw)
+    
+    @classmethod
+    def insert_one(cls,*args,**kw):
+        return cls._collection.insert_one(*args,**kw)
+
+    @classmethod
+    def insert(cls,*args,**kw):
+        return cls._collection.insert_many(*args,**kw)
+
+    @classmethod
+    def ainsert_one(cls,*args,**kw):
+        return cls._acollection.inert_one(*args,**kw)
+
+    @classmethod
+    def ainsert(cls,*args,**kw):
+        return cls._acollection.insert_many(*args,**kw)
     

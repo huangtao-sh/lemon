@@ -1,9 +1,25 @@
 import unittest
 from lemon.document import *
 
+
 class Test(Document):
     _projects='a b'.split()
-    
+
+
+class TestLemon(unittest.TestCase):
+    def setUp(self):
+        Test.drop()
+
+    def tearDown(self):
+        Test.drop()
+
+    def test_insert_one(self):
+        a={'a':1,'b':2}
+        Test.insert_one(a)
+        b=Test.objects.first()
+        self.assertEqual(a['a'],b['a'])
+        
+'''    
 async def test(self):
     await Test.insert({'a':1,'b':2})
 
@@ -77,3 +93,4 @@ class TestSample(unittest.TestCase):
         #TestLemon(self)
         pass
 
+'''

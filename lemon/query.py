@@ -27,6 +27,10 @@ class BaseQuery(object):
         return self.document._collection
 
     @property
+    def acollection(self):
+        return self.document._acollection
+
+    @property
     def query(self):
         _query=[query.to_query() if hasattr(query,'to_query') else query for query in self._query]
         if len(_query)==1:
@@ -37,8 +41,13 @@ class BaseQuery(object):
             query={}
         return query
 
-    async def first(self):
-        obj=await self.collection.find_one(self.query,skip=self._skip,
+    def first(self):
+        obj=self.collection.find_one(self.query,skip=self._skip,
+                projection=self.projection,sort=self._sort)
+        return obj and self.document(form_query=True,**obj)
+
+    async def afirst(self):
+        obj=await self.acollection.find_one(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort)
         return obj and self.document(from_query=True,**obj)
 
