@@ -52,14 +52,23 @@ class BaseQuery(object):
         return obj and self.document(from_query=True,**obj)
 
     def first_or_404(self):
-        obj=self.first()
+        return self.first() or abort(404)
+
+    async def afirst_or_404(self):
+        obj=await self.first()
         return obj or abort(404)
 
     def delete(self):
         self.collection.delete_many(self.query)
 
+    def adelete(self):
+        self.acollection.delete_many(self.query)
+
     def delete_one(self):
         self.collection.delete_one(self.query)
+    
+    def adelete_one(self):
+        self.acollection.delete_one(self.query)
         
     @property
     def projection(self):
@@ -74,6 +83,11 @@ class BaseQuery(object):
     @property
     def cursor(self):
         return self.collection.find(self.query,skip=self._skip,
+                projection=self.projection,sort=self._sort,limit=self._limit)
+
+    @property
+    def acursor(self):
+        return self.acollection.find(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort,limit=self._limit)
     
     def order_by(self,*projections):
@@ -106,24 +120,37 @@ class BaseQuery(object):
         self._limit=i
         return self
 
+    def __iter__(self):
+        for obj in self.cursor:
+            yield self.document(from_query=True,**obj)
+            
     async def __aiter__(self):
-        async for obj in self.cursor:
+        async for obj in self.acursor:
             yield self.document(from_query=True,**obj)
 
-    async def get(self,id):
+    async def aget(self,id):
         from bson.objectid import ObjectId
         try:
             id=ObjectId(id)
         except:
             pass
-        obj=await self.collection.find_one({'_id':id})
+        obj=await self.acollection.find_one({'_id':id})
         return obj and self.document(from_query=True,**obj)
 
-    async def get_or_404(self,id):
-        r=await self.get(id)
+    def get(self,id):
+        from bson.objectid import ObjectId
+        try:
+            id=ObjectId(id)
+        except:
+            pass
+        obj=self.collection.find_one({'_id':id})
+        return obj and self.document(from_query=True,**obj)
+
+    async def aget_or_404(self,id):
+        r=await self.aget(id)
         return r or abort(404)
 
-    async def scalar(self,*fields):
+    async def ascalar(self,*fields):
         self._projections=fields
         if len(fields)==1:
             async for i in self:
@@ -137,12 +164,21 @@ class BaseQuery(object):
     def distinct(self,*args):
         return self.cursor.distinct(*args)
 
+    def adistinct(self,*args):
+        return self.acursor.distinct(*args)
+
     def count(self,with_limit_and_skip=False):
         return self.cursor.count(with_limit_and_skip)
 
+    def acount(self,with_limit_and_skip=False):
+        return self.acursor.count(with_limit_and_skip)
+
     def rewind(self):
         return self.cursor.rewind()
-        
+
+    def arewind(self):
+        return self.acursor.rewind()
+
     async def paginate(self,page, per_page=20):
         total=await self.cursor.count(True)
         pages,m=divmod(total,per_page)
