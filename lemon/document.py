@@ -12,6 +12,7 @@ from .config import *
 class Document(dict):
     __db=None
     __adb=None
+    _projects=()
     
     @cachedproperty
     def _acollection(cls):
@@ -35,7 +36,15 @@ class Document(dict):
             return super().__str__()
 
     def __getattr__(self,attr):
-        return self[attr]
+        return self[attr] if attr in self._projects else \
+            super().__getattr__(attr)
+
+
+    def __setattr__(self,name,value):
+        if name in self._projects:
+            self[name]=value
+        else:
+            super().__setattr__(name,value)
 
     @classmethod
     def drop(cls):

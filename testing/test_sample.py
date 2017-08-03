@@ -5,6 +5,8 @@ from lemon.document import *
 class Test(Document):
     _projects='a b'.split()
 
+    #_textfmt='{self.a}\t{self.b}'
+
 
 class TestLemon(unittest.TestCase):
     def setUp(self):
@@ -15,10 +17,32 @@ class TestLemon(unittest.TestCase):
 
     def test_insert_one(self):
         a={'a':1,'b':2}
-        Test.insert_one(a)
+        Test.insert_one(a.copy())
         b=Test.objects.first()
         self.assertEqual(a['a'],b['a'])
-        
+        Test.insert_one(a.copy())
+        for i in Test.objects:
+            print(i)
+        print(Test.objects.distinct('a'))
+        print(Test.objects.count())
+        Test.objects(P.a==3).upsert(b=4)
+        b=Test.objects(P.a==3).first()
+        print(b.b)
+        Test.objects.update(P.b.inc(10))
+        for i in Test.objects:
+            print(i)
+        print('-'*20)
+        for i in Test.objects.paginate(2,per_page=2).items:
+            print(i)
+        print('-'*20)
+        a=Test.aggregate()
+        a.group(P.a,P.b.push("$b"))
+        for i in a:
+            print(i)
+        print(Test.objects.first_or_404())
+
+    def test_notfound(self):
+        self.assertRaises(Test.objects.first_or_404())
 '''    
 async def test(self):
     await Test.insert({'a':1,'b':2})

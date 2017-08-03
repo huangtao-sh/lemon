@@ -32,7 +32,8 @@ class BaseQuery(object):
 
     @property
     def query(self):
-        _query=[query.to_query() if hasattr(query,'to_query') else query for query in self._query]
+        _query=[query.to_query() if hasattr(query,'to_query') else \
+                    query for query in self._query]
         if len(_query)==1:
             query=_query[0]
         elif len(_query)>1:
@@ -158,6 +159,15 @@ class BaseQuery(object):
         else:
             async for i in self:
                 yield tuple(getattr(i,x) for x in fields)
+                
+    def scalar(self,*fields):
+        self._projections=fields
+        if len(fields)==1:
+            for i in self:
+                yield getattr(i,fields[0])
+        else:
+            for i in self:
+                yield tuple(getattr(i,x) for x in fields)
 
     values_list = scalar
 
@@ -180,7 +190,7 @@ class BaseQuery(object):
         return self.acursor.rewind()
 
     async def paginate(self,page, per_page=20):
-        total=await self.cursor.count(True)
+        total=await self.acursor.count(True)
         pages,m=divmod(total,per_page)
         if m:
             pages+=1
@@ -192,6 +202,20 @@ class BaseQuery(object):
         items=[]
         async for i in self:
             items.append(i)
+        self._skip,self._limit=skip,limit  # 恢复当原状态
+        return Pagination(self, page, per_page, total, items)
+    
+    def paginate(self,page, per_page=20):
+        total=self.cursor.count(True)
+        pages,m=divmod(total,per_page)
+        if m:
+            pages+=1
+        ensure((page>0)and(page<=pages),'页码超限！')
+        skip,limit=self._skip,self._limit # 保存当前状态
+        self._skip=self._skip+(page-1)*per_page
+        self._limit=per_page
+        self.rewind()
+        items=list(self)
         self._skip,self._limit=skip,limit  # 恢复当原状态
         return Pagination(self, page, per_page, total, items)
 
@@ -235,11 +259,11 @@ class Aggregation:
         self.pipeline=pipeline or []
         self.kw=kw or {}
 
-    def __aiter__(self):
+    def __iter__(self):
         '''迭代返回所有值'''
         return self.collection.aggregate(self.pipeline,**self.kw)
 
-    async def paginate(self, page, per_page=20, error_out=True):
+    def paginate(self, page, per_page=20, error_out=True):
         """Returns `per_page` items from page `page`.  By default it will
         abort with 404 if no items were found and the page was larger than
         1.  This behavor can be disabled by setting `error_out` to `False`.
@@ -250,11 +274,8 @@ class Aggregation:
             abort(404)
         pipeline=self.pipeline.copy()
         pipeline.append({'$skip':(page-1)*per_page})
-        items=[]
-        async for obj in self.collection.aggregate(pipeline,**self.kw):
-            items.append(obj)
-        # items=[i for i in \
-        #       self.collection.aggregate(pipeline,**self.kw)]
+        items=[i for i in \
+               self.collection.aggregate(pipeline,**self.kw)]
         total=(page-1)*per_page+len(items)
         items=items[:per_page]
         if not items and page != 1 and error_out:
