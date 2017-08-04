@@ -53,7 +53,7 @@ class TestLemon(unittest.TestCase):
             a=await Test.abjects(P.a==1).first()
             self.assertEqual(a.b,20)
             d={'a':15,'b':20}
-            await Test.abjects.insert(d)
+            await Test.abjects.insert([d])
             a=await Test.abjects(P.a==15).first()
             self.assertEqual(a.b,20)
             
@@ -69,17 +69,15 @@ class TestLemon(unittest.TestCase):
     def test_asyncio_batch(self):
         async def _():
             func=lambda x: {'a':x,'b':x+100}
-            b=await Test.abjects.insert(range(1024),ordered=True,func=func)
+            await Test.abjects.insert(range(1024),func=func)
             a=await Test.abjects.count()
             self.assertEqual(a,1024)
-            self.assertEqual(a,b)
             s=await Test.abjects.distinct('a')
             d=[]
             async for x in Test.abjects.scalar('a'):
                 d.append(x)
             self.assertSetEqual(set(s),set(range(1024)))
             self.assertSetEqual(set(d),set(range(1024)))
-
         run(_())
 
     def test_asyncio_batch2(self):
