@@ -8,10 +8,20 @@
 from pymongo import *
 from .expr import *
 from .paginate import *
+from orange.coroutine import *
 
 def abort(*args,**kwargs):
     import flask
     flask.abort(*args,**kwargs)
+
+def split(lst,size=1000):
+    b,e=0,0
+    l=len(lst)
+    for e in range(size,l,size):
+        yield b,e
+        b=e
+    if l>e:
+        yield (e,l)
 
 class BaseQuery(object):
     def __init__(self,document):
@@ -25,10 +35,6 @@ class BaseQuery(object):
     @property
     def collection(self):
         return self.document._collection
-
-    @property
-    def acollection(self):
-        return self.document._acollection
 
     @property
     def query(self):
@@ -45,32 +51,17 @@ class BaseQuery(object):
     def first(self):
         obj=self.collection.find_one(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort)
-        return obj and self.document(form_query=True,**obj)
-
-    async def afirst(self):
-        obj=await self.acollection.find_one(self.query,skip=self._skip,
-                projection=self.projection,sort=self._sort)
         return obj and self.document(from_query=True,**obj)
 
     def first_or_404(self):
         return self.first() or abort(404)
 
-    async def afirst_or_404(self):
-        obj=await self.first()
-        return obj or abort(404)
-
     def delete(self):
-        self.collection.delete_many(self.query)
-
-    def adelete(self):
-        self.acollection.delete_many(self.query)
+        return self.collection.delete_many(self.query)
 
     def delete_one(self):
-        self.collection.delete_one(self.query)
-    
-    def adelete_one(self):
-        self.acollection.delete_one(self.query)
-        
+        return self.collection.delete_one(self.query)
+            
     @property
     def projection(self):
         projections=None
@@ -86,11 +77,6 @@ class BaseQuery(object):
         return self.collection.find(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort,limit=self._limit)
 
-    @property
-    def acursor(self):
-        return self.acollection.find(self.query,skip=self._skip,
-                projection=self.projection,sort=self._sort,limit=self._limit)
-    
     def order_by(self,*projections):
         for p in projections:
             if isinstance(p,str):
@@ -125,19 +111,6 @@ class BaseQuery(object):
         for obj in self.cursor:
             yield self.document(from_query=True,**obj)
             
-    async def __aiter__(self):
-        async for obj in self.acursor:
-            yield self.document(from_query=True,**obj)
-
-    async def aget(self,id):
-        from bson.objectid import ObjectId
-        try:
-            id=ObjectId(id)
-        except:
-            pass
-        obj=await self.acollection.find_one({'_id':id})
-        return obj and self.document(from_query=True,**obj)
-
     def get(self,id):
         from bson.objectid import ObjectId
         try:
@@ -147,64 +120,26 @@ class BaseQuery(object):
         obj=self.collection.find_one({'_id':id})
         return obj and self.document(from_query=True,**obj)
 
-    async def aget_or_404(self,id):
-        r=await self.aget(id)
-        return r or abort(404)
-
-    async def ascalar(self,*fields):
-        self._projections=fields
-        if len(fields)==1:
-            async for i in self:
-                yield getattr(i,fields[0])
-        else:
-            async for i in self:
-                yield tuple(getattr(i,x) for x in fields)
-                
     def scalar(self,*fields):
         self._projections=fields
         if len(fields)==1:
-            for i in self:
-                yield getattr(i,fields[0])
+            extract=lambda d:d.values(*fields)[0]
         else:
-            for i in self:
-                yield tuple(getattr(i,x) for x in fields)
+            extract=lambda d:d.values(*fields)
+        for d in self:
+            yield extract(d)
 
     values_list = scalar
 
     def distinct(self,*args):
         return self.cursor.distinct(*args)
 
-    def adistinct(self,*args):
-        return self.acursor.distinct(*args)
-
     def count(self,with_limit_and_skip=False):
         return self.cursor.count(with_limit_and_skip)
-
-    def acount(self,with_limit_and_skip=False):
-        return self.acursor.count(with_limit_and_skip)
 
     def rewind(self):
         return self.cursor.rewind()
 
-    def arewind(self):
-        return self.acursor.rewind()
-
-    async def paginate(self,page, per_page=20):
-        total=await self.acursor.count(True)
-        pages,m=divmod(total,per_page)
-        if m:
-            pages+=1
-        ensure((page>0)and(page<=pages),'页码超限！')
-        skip,limit=self._skip,self._limit # 保存当前状态
-        self._skip=self._skip+(page-1)*per_page
-        self._limit=per_page
-        self.rewind()
-        items=[]
-        async for i in self:
-            items.append(i)
-        self._skip,self._limit=skip,limit  # 恢复当原状态
-        return Pagination(self, page, per_page, total, items)
-    
     def paginate(self,page, per_page=20):
         total=self.cursor.count(True)
         pages,m=divmod(total,per_page)
@@ -220,7 +155,8 @@ class BaseQuery(object):
         return Pagination(self, page, per_page, total, items)
 
     def update(self,*args,upsert=False, multi=True, **kw):
-        func=self.collection.update_many if multi else self.collection.update_one
+        func=self.collection.update_many if multi else \
+          self.collection.update_one
         args=[arg.to_update()for arg in args]
         for k,v in kw.items():
             if k.startswith('$'):
@@ -252,7 +188,75 @@ class BaseQuery(object):
         kw['multi']=False
         kw['upsert']=True
         return self.update(*args,**kw)
+
+    def _insert(self,objs,func=None,**kw):
+        return self.collection.insert_many(map(func,objs)\
+            if func else objs,**kw)
+
+    def insert(self,objs,func=None,**kw):
+        return sum([len(self._insert(objs[b:e],func=func,**kw).inserted_ids)
+                        for b,e in split(objs)])
         
+class AsyncioQuery(BaseQuery):
+    @property
+    def collection(self):
+        return self.document._acollection
+
+    async def first(self):
+        obj=await self.collection.find_one(self.query,skip=self._skip,
+                projection=self.projection,sort=self._sort)
+        return obj and self.document(from_query=True,**obj)
+
+    async def __aiter__(self):
+        async for obj in self.cursor:
+            yield self.document(from_query=True,**obj)
+
+    async def get(self,id):
+        from bson.objectid import ObjectId
+        try:
+            id=ObjectId(id)
+        except:
+            pass
+        obj=await self.collection.find_one({'_id':id})
+        return obj and self.document(from_query=True,**obj)
+
+    async def scalar(self,*fields):
+        self._projections=fields
+        if len(fields)==1:
+            extract=lambda d:d.values(*fields)[0]
+        else:
+            extract=lambda d:d.values(*fields)
+        async for i in self:
+                yield extract(i)
+
+    async def paginate(self,page, per_page=20):
+        total=await self.cursor.count(True)
+        pages,m=divmod(total,per_page)
+        if m:
+            pages+=1
+        ensure((page>0)and(page<=pages),'页码超限！')
+        skip,limit=self._skip,self._limit # 保存当前状态
+        self._skip=self._skip+(page-1)*per_page
+        self._limit=per_page
+        self.rewind()
+        items=[]
+        async for i in self:
+            items.append(i)
+        self._skip,self._limit=skip,limit  # 恢复当原状态
+        return Pagination(self, page, per_page, total, items)
+
+    async def insert(self,objs,func=None,ordered=False,**kw):
+        if ordered:
+            count=0
+            for b,e in split(objs):
+                r=await self._insert(objs[b:e],func=func,**kw)
+                count+=len(r.inserted_ids)
+            return count
+        else:
+            lst=[self._insert(objs[b:e],func=func,**kw) for
+                     b,e in split(objs)]
+            return await wait(lst)
+                         
 class Aggregation:
     def __init__(self,document,pipeline=None,**kw):
         self.collection=document._collection

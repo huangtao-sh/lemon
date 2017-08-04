@@ -13,7 +13,11 @@ class Document(dict):
     __db=None
     __adb=None
     _projects=()
-    
+
+    def __init__(self,*args,from_query=False,**kw):
+        self._modified=not from_query
+        super().__init__(*args,**kw)
+        
     @cachedproperty
     def _acollection(cls):
         if Document.__adb is None:
@@ -21,13 +25,16 @@ class Document(dict):
             client=AsyncIOMotorClient(**config())
             Document.__adb=client.get_default_database()
         return Document.__adb[convert_cls_name(cls.__name__)]
-
+    
     @cachedproperty
     def _collection(cls):
         if Document.__db is None:
             client=MongoClient(**config())
             Document.__db=client.get_default_database()
         return Document.__db[convert_cls_name(cls.__name__)]
+
+    def values(self,*fields):
+        return tuple((getattr(self,p) for p in fields))
 
     def __str__(self):
         if hasattr(self,'_textfmt'):
@@ -55,6 +62,10 @@ class Document(dict):
     @classproperty
     def objects(cls):
         return BaseQuery(cls)
+    
+    @classproperty
+    def abjects(cls):
+        return AsyncioQuery(cls)
         
     @classmethod
     def aggregate(cls,*args,**kw):
@@ -65,14 +76,13 @@ class Document(dict):
         return cls._collection.insert_one(*args,**kw)
 
     @classmethod
-    def insert(cls,*args,**kw):
+    def insert_many(cls,*args,**kw):
         return cls._collection.insert_many(*args,**kw)
 
     @classmethod
-    def ainsert_one(cls,*args,**kw):
-        return cls._acollection.inert_one(*args,**kw)
+    def ansert_one(cls,*args,**kw):
+        return cls._acollection.insert_one(*args,**kw)
 
     @classmethod
-    def ainsert(cls,*args,**kw):
+    def ansert_many(cls,*args,**kw):
         return cls._acollection.insert_many(*args,**kw)
-    

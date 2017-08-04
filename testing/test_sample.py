@@ -1,6 +1,6 @@
 import unittest
 from lemon.document import *
-
+from orange.coroutine import *
 
 class Test(Document):
     _projects='a b'.split()
@@ -17,104 +17,77 @@ class TestLemon(unittest.TestCase):
 
     def test_insert_one(self):
         a={'a':1,'b':2}
-        Test.insert_one(a.copy())
+        d={'a':1,'b':2}
+        Test.insert_one(d)
         b=Test.objects.first()
-        self.assertEqual(a['a'],b['a'])
-        Test.insert_one(a.copy())
-        for i in Test.objects:
-            print(i)
-        print(Test.objects.distinct('a'))
-        print(Test.objects.count())
+        self.assertEqual(d,b)
+        Test.insert_one(a)
+        self.assertListEqual(Test.objects.distinct('a'),[1])
+        self.assertEqual(Test.objects.count(),2)
         Test.objects(P.a==3).upsert(b=4)
         b=Test.objects(P.a==3).first()
-        print(b.b)
+        self.assertEqual(b.b,4)
         Test.objects.update(P.b.inc(10))
-        for i in Test.objects:
-            print(i)
-        print('-'*20)
-        for i in Test.objects.paginate(2,per_page=2).items:
-            print(i)
-        print('-'*20)
-        a=Test.aggregate()
-        a.group(P.a,P.b.push("$b"))
-        for i in a:
-            print(i)
-        print(Test.objects.first_or_404())
+        b=Test.objects(P.a==3).first()
+        self.assertEqual(b.b,14)
 
-    def test_notfound(self):
-        self.assertRaises(Test.objects.first_or_404())
-'''    
-async def test(self):
-    await Test.insert({'a':1,'b':2})
-
-class TestLemon:
-    def __init__(self,test):
-        self.test=test
-        async def main():
-            for t in [getattr(self,x)for x in dir(self) if x.startswith('test_')]:
-                try:
-                    await t()
-                finally:
-                    await Test.drop()
-        start(main())
-
-    def equal(self,*args):
-        self.test.assertEqual(*args)
+        Test.objects(P.a==3).delete()
+        a=Test.objects(P.a==3).first()
+        self.assertIsNone(a)
+        Test.objects(P.a==1).delete_one()
+        self.assertEqual(Test.objects(P.a==1).count(),1)
         
-    async def test_insert(self):
-        obj=await Test.insert({'a':1,'b':2})
-        await sleep(0.1)
-        a=await Test.objects.get(str(obj.inserted_id))       # 测试 get
-        self.test.assertEqual(a.a,1)
-        a=await Test.objects.get_or_404(str(obj.inserted_id)) # 测试get_or_404
-        self.test.assertEqual(a.a,1)
-        a=await Test.objects.first()              # 测试 first
-        self.test.assertEqual(a.a,1)
-        a=await Test.objects.first_or_404()      # 测试 first_or_404
-        self.test.assertEqual(a.a,1)
-        count=await Test.objects.count()         # 测试 count
-        self.test.assertEqual(count,1)
-        
-    async def test_search(self):
-        await batch(lambda x:Test.insert({'a':x,'b':x+10}),range(10))
-        await batch(lambda x:Test.insert({'a':x,'b':x+10}),range(100,110))
-        count=await Test.objects.count()
-        self.test.assertEqual(count,20)
-        count=await Test.objects(P.a>10).count()
-        self.test.assertEqual(count,10)
-        await Test.insert({'a':'HuangTao','b':'test'})
-        a=await Test.objects(P.a.startswith('Huang')).first()
-        self.test.assertEqual(a.b,'test')
-        a=await Test.objects(P.a.endswith('Tao')).first()
-        self.test.assertEqual(a.b,'test')
-        a=await Test.objects(P.a.istartswith('huang')).first()
-        self.test.assertEqual(a.b,'test')
-        a=await Test.objects(P.a.contains('uang')).first()
-        self.test.assertEqual(a.b,'test')
-        a=await Test.objects(P.a.icontains('Uang')).first()
-        self.test.assertEqual(a.b,'test')
-        a=await Test.objects(P.a.iendswith('Gtao')).first()
-        self.equal(a.b,'test')
-        
-    async def test_update(self):
-        await batch(lambda x:Test.insert({'a':x,'b':x+10}),range(10))
-        await Test.objects(P.a<10).update(P.b.inc(1))
-        x=[]
-        async for i in Test.objects(P.a<10):
-            x.append(i.b)
-        self.test.assertListEqual(sorted(x),list(sorted(range(11,21))))
-        await Test.objects(P.a=='huangtao').upsert_one(b='lisi')
-        a=await Test.objects(P.a=='huangtao').first()
-        self.equal(a.b,'lisi')
+    def test_asyncio(self):
+        async def _():
+            a={'a':1,'b':2}
+            await Test.ansert_one(a)
+            b=await Test.abjects.first()
+            self.assertDictEqual(a,b)
+            await Test.abjects(P.a==1).delete_one()
+            self.assertEqual(await Test.abjects.count(),0)
 
-        await Test.objects(P.a=='huangtao').update_one(b='machao')
-        a=await Test.objects(P.a=='huangtao').first()
-        self.equal(a.b,'machao')
-        
+            await Test.abjects(P.a==1).upsert(b=10)
+            a=await Test.abjects(P.a==1).first()
+            self.assertEqual(a.b,10)
+            await Test.abjects(P.a==1).update(P.b.inc(10))
+            a=await Test.abjects(P.a==1).first()
+            self.assertEqual(a.b,20)
+            d={'a':15,'b':20}
+            await Test.abjects.insert(d)
+            a=await Test.abjects(P.a==15).first()
+            self.assertEqual(a.b,20)
+            
+        run(_())
 
-class TestSample(unittest.TestCase):
-    def test_lemon(self):
-        #TestLemon(self)
-        pass
+    def test_batch(self):
+        func=lambda x: {'a':x,'b':x+100}
+        b=Test.objects.insert(range(1024),func=func)
+        a=Test.objects.count()
+        self.assertEqual(a,1024)
+        self.assertEqual(a,b)
 
-'''
+    def test_asyncio_batch(self):
+        async def _():
+            func=lambda x: {'a':x,'b':x+100}
+            b=await Test.abjects.insert(range(1024),ordered=True,func=func)
+            a=await Test.abjects.count()
+            self.assertEqual(a,1024)
+            self.assertEqual(a,b)
+            s=await Test.abjects.distinct('a')
+            d=[]
+            async for x in Test.abjects.scalar('a'):
+                d.append(x)
+            self.assertSetEqual(set(s),set(range(1024)))
+            self.assertSetEqual(set(d),set(range(1024)))
+
+        run(_())
+
+    def test_asyncio_batch2(self):
+        async def _():
+            sl=1024
+            func=lambda x: {'a':x,'b':x+100}
+            b=await Test.abjects.insert(range(sl),func=func)
+            a=await Test.abjects.count()
+            self.assertEqual(a,sl)
+        run(_())
+
