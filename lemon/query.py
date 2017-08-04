@@ -24,7 +24,9 @@ def split(lst,size=1000):
         yield (e,l)
 
 class BaseQuery(object):
+    '''查询基类'''
     def __init__(self,document):
+        '''初始化'''
         self.document=document
         self._query=[]
         self._skip=0
@@ -34,10 +36,12 @@ class BaseQuery(object):
         
     @property
     def collection(self):
+        '''数据集'''
         return self.document._collection
 
     @property
     def query(self):
+        '''返回查询条件'''
         _query=[query.to_query() if hasattr(query,'to_query') else \
                     query for query in self._query]
         if len(_query)==1:
@@ -49,21 +53,26 @@ class BaseQuery(object):
         return query
 
     def first(self):
+        '''符合条件的第一条记录'''
         obj=self.collection.find_one(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort)
         return obj and self.document(from_query=True,**obj)
 
     def first_or_404(self):
+        '''符合条件的第一条记录，如查找不到返回404页面'''
         return self.first() or abort(404)
 
     def delete(self):
+        '''删除符合条件的所有记录'''
         return self.collection.delete_many(self.query)
 
     def delete_one(self):
+        '''删除符合条件的第一条记录'''
         return self.collection.delete_one(self.query)
             
     @property
     def projection(self):
+        '''生成查询条件的projection语句'''
         projections=None
         if self._projections:
             projections={}
@@ -74,10 +83,12 @@ class BaseQuery(object):
     
     @property
     def cursor(self):
+        '''返回数据游标'''
         return self.collection.find(self.query,skip=self._skip,
                 projection=self.projection,sort=self._sort,limit=self._limit)
 
     def order_by(self,*projections):
+        '''设置排序'''
         for p in projections:
             if isinstance(p,str):
                 p=P(p)
@@ -85,6 +96,7 @@ class BaseQuery(object):
         return self
 
     def project(self,*projections):
+        '''设置Porject'''
         for p in projections:
             if isinstance(p,str):
                 p=P(p)
@@ -92,6 +104,7 @@ class BaseQuery(object):
         return self
     
     def filter(self,*query,**kw):
+        '''增加查询条件'''
         self._query.extend(query)
         if kw:
             self._query.append(kw)
@@ -245,18 +258,10 @@ class AsyncioQuery(BaseQuery):
         self._skip,self._limit=skip,limit  # 恢复当原状态
         return Pagination(self, page, per_page, total, items)
 
-    async def insert(self,objs,func=None,ordered=False,**kw):
-        if ordered:
-            count=0
-            for b,e in split(objs):
-                r=await self._insert(objs[b:e],func=func,**kw)
-                count+=len(r.inserted_ids)
-            return count
-        else:
-            lst=[self._insert(objs[b:e],func=func,**kw) for
-                     b,e in split(objs)]
-            return await wait(lst)
-                         
+    def insert(self,objs,func=None,**kw):
+        return wait([self._insert(objs[b:e],func=func,**kw) for
+                     b,e in split(objs)])
+
 class Aggregation:
     def __init__(self,document,pipeline=None,**kw):
         self.collection=document._collection
