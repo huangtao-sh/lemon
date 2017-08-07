@@ -14,14 +14,13 @@ def abort(*args,**kwargs):
     import flask
     flask.abort(*args,**kwargs)
 
-def split(lst,size=1000):
-    b,e=0,0
-    l=len(lst)
-    for e in range(size,l,size):
-        yield b,e
-        b=e
-    if l>e:
-        yield (e,l)
+def _split(data,step=1000):
+    length=len(data)
+    i=0
+    for i in range(step,length,step):
+        yield data[i-step:i]
+    else:
+        yield data[i:]
 
 class BaseQuery(object):
     '''查询基类'''
@@ -207,8 +206,8 @@ class BaseQuery(object):
             if func else objs,**kw)
 
     def insert(self,objs,func=None,**kw):
-        return sum([len(self._insert(objs[b:e],func=func,**kw).inserted_ids)
-                        for b,e in split(objs)])
+        return sum([len(self._insert(data,func=func,**kw).inserted_ids)
+                        for data in _split(objs)])
         
 class AsyncioQuery(BaseQuery):
     @property
@@ -259,8 +258,8 @@ class AsyncioQuery(BaseQuery):
         return Pagination(self, page, per_page, total, items)
 
     def insert(self,objs,func=None,**kw):
-        return wait([self._insert(objs[b:e],func=func,**kw) for
-                     b,e in split(objs)])
+        return wait([self._insert(data,func=func,**kw) for
+                     data in _split(objs)])
 
 class Aggregation:
     def __init__(self,document,pipeline=None,**kw):
