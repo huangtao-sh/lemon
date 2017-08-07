@@ -148,6 +148,14 @@ class Document(dict,metaclass=DocumentMeta):
             [add(row) for row in data if len(row)>=field_count]
         if datas:
             cls._batch_insert(datas)
+
+    @property
+    def id(self):
+        return self['_id']
+
+    @id.setter
+    def id(self,value):
+        self['_id']=value
     
     @property
     def _text(self):
