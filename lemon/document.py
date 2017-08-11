@@ -151,11 +151,25 @@ class Document(dict,metaclass=DocumentMeta):
 
     @property
     def id(self):
-        return self['_id']
+        return self.get('_id')
 
     @id.setter
     def id(self,value):
         self['_id']=value
+
+    def save(self):
+        if self._modified:
+            if self.id:
+                d=self.copy()
+                d.pop('_id')
+                self.__class__.objects(P.id==self.id).upsert_one(**d)
+            else:
+                self._collection.insert_one(self)
+            self._modified=False
+
+    def __setitem__(self,*args,**kw):
+        self._modified=True
+        return super().__setitem__(*args,**kw)
     
     @property
     def _text(self):
@@ -171,8 +185,10 @@ class Document(dict,metaclass=DocumentMeta):
         # 返回本实例的超文本格式
         return self._htmlfmt.format(self=self)
 
-    def __init__(self,*args,from_query=False,**kw):
+    def __init__(self,*args,id=None,from_query=False,**kw):
         self._modified=not from_query
+        if id:
+            kw['_id']=id
         super().__init__(*args,**kw)
         
     @cachedproperty
@@ -180,28 +196,25 @@ class Document(dict,metaclass=DocumentMeta):
         if Document.__adb is None:
             from motor.motor_asyncio import AsyncIOMotorClient
             client=AsyncIOMotorClient(**config())
-            Document.__adb=client.get_default_database()
+            Document.__adb=client.get_database()
         return Document.__adb[convert_cls_name(cls.__name__)]
     
     @cachedproperty
     def _collection(cls):
         if Document.__db is None:
             client=MongoClient(**config())
-            Document.__db=client.get_default_database()
+            Document.__db=client.get_database()
         return Document.__db[convert_cls_name(cls.__name__)]
 
     def values(self,*fields):
         return tuple((getattr(self,p) for p in fields))
 
     def __getattr__(self,attr):
-        return self[attr] if attr in self._projects else \
-            super().__getattr__(attr)
-
+        return self.get(attr) if attr in self._projects else \
+            super().getattr(attr)
 
     def __setattr__(self,name,value):
         if name in self._projects:
             self[name]=value
         else:
             super().__setattr__(name,value)
-
-    

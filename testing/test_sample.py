@@ -1,5 +1,5 @@
 import unittest
-from lemon.document import *
+from lemon import *
 from orange.coroutine import *
 
 class Test(Document):
@@ -89,3 +89,21 @@ class TestLemon(unittest.TestCase):
             self.assertEqual(a,sl)
         run(_())
 
+    def test_save(self):
+        t=Test(a=10,b=100)
+        self.assertEqual(t._modified,True)
+        t.save()
+        a=Test.objects.first()
+        self.assertEqual(t._modified,False)
+        self.assertEqual(t.a,a.a)
+        a.b=20000
+        self.assertEqual(a._modified,True)
+        a.save()
+        self.assertEqual(a._modified,False)
+        t=Test.objects.first()
+        self.assertEqual(a.b,t.b)
+        t=Test(id=10,a=40,b=60)
+        self.assertTrue(t._modified)
+        t.save()
+        b=Test.objects.get(10)
+        self.assertEqual(t.a,b.a)

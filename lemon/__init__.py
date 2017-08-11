@@ -2,3 +2,7 @@
 # 作者：黄涛
 # 邮件：hunto@163.com
 # 创建：2017-07-22
+
+from .document import *
+
+__all__='config','P','Document'
