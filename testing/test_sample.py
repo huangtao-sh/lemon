@@ -15,6 +15,20 @@ class TestLemon(unittest.TestCase):
     def tearDown(self):
         Test.drop()
 
+    def test_asave(self):
+        async def _():
+            a=Test(id=10,a=20,b=30)
+            await a.asave()
+            t=await Test.abjects.first()
+            self.assertEqual(a.a,t.a)
+            t.b=300
+            self.assertTrue(t._modified)
+            await t.asave()
+            self.assertFalse(t._modified)
+            a=await Test.abjects.first()
+            self.assertEqual(a.b,t.b)
+        run(_())
+        
     def test_insert_one(self):
         a={'a':1,'b':2}
         d={'a':1,'b':2}

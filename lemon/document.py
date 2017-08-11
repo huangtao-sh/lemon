@@ -167,6 +167,16 @@ class Document(dict,metaclass=DocumentMeta):
                 self._collection.insert_one(self)
             self._modified=False
 
+    async def asave(self):
+        if self._modified:
+            if self.id:
+                d=self.copy()
+                d.pop('_id')
+                await self.__class__.abjects(P.id==self.id).upsert_one(**d)
+            else:
+                await self._collection.insert_one(self)
+            self._modified=False
+
     def __setitem__(self,*args,**kw):
         self._modified=True
         return super().__setitem__(*args,**kw)
