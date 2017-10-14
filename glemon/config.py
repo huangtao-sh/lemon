@@ -24,6 +24,5 @@ def config(is_dev=None,db=None):
         config.setdefault('connect',False)
         if _config.is_dev :
             config['host']='mongodb://localhost/test'
-        print('test')
         __config=config
     return __config
