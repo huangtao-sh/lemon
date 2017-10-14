@@ -52,7 +52,7 @@ class Document(dict,metaclass=DocumentMeta):
                        # tuple或str
     
     @classmethod
-    def load_files(cls,*files,clear=False,dup_check=True,**kw):
+    async def load_files(cls,*files,clear=False,dup_check=True,**kw):
         '''通过文件批量导入数据
         files: 导入文件清单
         clear：清理原表中的数据，默认为不清理
@@ -72,43 +72,34 @@ class Document(dict,metaclass=DocumentMeta):
             kw['filename']=filename
             ext = filename.lsuffix
             if ext=='.del':
-                cls.load_data([d for d in filename], **kw)
+                await cls.load_data([d for d in filename], **kw)
             elif ext in ('.txt','.csv'):
-                cls.load_txtfile(**kw)
+                await cls.load_txtfile(**kw)
             elif ext.startswith('.xls'):
                 for index, sheetname, data in filename.iter_sheets():
                     if data:
-                        cls.load_sheet(data=data,sheetname=sheetname,
+                        await cls.load_sheet(data=data,sheetname=sheetname,
                                        index=index,**kw)
         if dup_check and clear:
             LoadFile.save(cls.__name__,*files)
             
     @classmethod
-    def load_sheet(cls,data,sheetname,index,**kw):
+    async def load_sheet(cls,data,sheetname,index,**kw):
         # 逐表处理excel文件
-        cls.load_data(data,**kw)
+        await cls.load_data(data,**kw)
         
     @classmethod
-    def load_txtfile(cls,filename,sep=',',**kw):
+    async def load_txtfile(cls,filename,sep=',',**kw):
         # 处理文本文件
         data = [d.split(sep) for d in filename.lines]
-        cls.load_data(data,**kw)
-
-    @classproperty
-    def _fields_without_id(cls):
-        # 查询除id以外的字段名
-        return self._projects
+        await cls.load_data(data,**kw)
 
     @classmethod
     def _check_row(cls,row):
         return row
     
     @classmethod
-    def _batch_insert(cls,data):
-        cls.objects.insert(data)
-    
-    @classmethod
-    def load_data(cls,data,fields=None,mapper=None,quote=None,
+    async def load_data(cls,data,fields=None,mapper=None,quote=None,
                   header=None,**kw):
         # 批量导入数据
         def extract_str(x):
@@ -120,7 +111,7 @@ class Document(dict,metaclass=DocumentMeta):
         header=header or cls._load_header
         if isinstance(header,str):
             header=(header,)
-        fields=fields or cls._fields_without_id
+        fields=fields or cls._projects
         if(not header)and isinstance(mapper,dict):
             header=[x for x in mapper.values()if isinstance(x,str)]
 
@@ -135,7 +126,6 @@ class Document(dict,metaclass=DocumentMeta):
                 mapper=[mapper[x] for x in fields]
             data=data[i+1:]
         datas=[]
-        fields=[cls._translate_field_name(x) for x in fields]
         field_count =len(mapper) if mapper else len(fields)
         def add(row):
             d = cls._check_row(row)
@@ -147,7 +137,7 @@ class Document(dict,metaclass=DocumentMeta):
         else:
             [add(row) for row in data if len(row)>=field_count]
         if datas:
-            cls._batch_insert(datas)
+            await cls.abjects.insert(datas)
 
     @property
     def id(self):

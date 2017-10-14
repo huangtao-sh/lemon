@@ -7,7 +7,15 @@ class Test(Document):
 
     #_textfmt='{self.a}\t{self.b}'
 
-
+class TestShadow(unittest.TestCase):
+    def test_shadow(self):
+        from lemon.shadow import Shadow
+        a={'user':'zhangsan','passwd':'123456','abc':'work'}
+        Shadow.write('shadow_test',a)
+        self.assertDictEqual(a,Shadow.read('shadow_test'))
+        Shadow.write('shadow_test',None)
+        self.assertDictEqual({},Shadow.read('shadow_test'))
+    
 class TestLemon(unittest.TestCase):
     def setUp(self):
         Test.drop()
@@ -121,3 +129,4 @@ class TestLemon(unittest.TestCase):
         t.save()
         b=Test.objects.get(10)
         self.assertEqual(t.a,b.a)
+
