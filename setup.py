@@ -9,13 +9,13 @@ gui_scripts=[
         # 'cmdname=package:function',
                  ]
 setup(
-        name='lemon',
+        name='glemon',
         author='黄涛',
         author_email='hunto@163.com',
         platforms='any',
-        description='lemon',
+        description='glemon',
         install_requires=requires,
-        long_description='lemon',
+        long_description='glemon',
         entry_points={'console_scripts':console_scripts,
                        'gui_scripts':gui_scripts},
         url='https://github.com/huangtao-sh/lemon.git',

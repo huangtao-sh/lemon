@@ -1,5 +1,5 @@
 import unittest
-from lemon import *
+from glemon import *
 from orange.coroutine import *
 
 class Test(Document):
@@ -9,7 +9,7 @@ class Test(Document):
 
 class TestShadow(unittest.TestCase):
     def test_shadow(self):
-        from lemon.shadow import Shadow
+        from glemon.shadow import Shadow
         a={'user':'zhangsan','passwd':'123456','abc':'work'}
         Shadow.write('shadow_test',a)
         self.assertDictEqual(a,Shadow.read('shadow_test'))
