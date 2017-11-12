@@ -207,7 +207,7 @@ class Document(dict,metaclass=DocumentMeta):
         return Document.__db[convert_cls_name(cls.__name__)]
 
     def values(self,*fields):
-        return tuple((getattr(self,p) for p in fields))
+        return tuple((self.get(p,None) for p in fields))
 
     def __getattr__(self,attr):
         return self.get(attr) if attr in self._projects else \
