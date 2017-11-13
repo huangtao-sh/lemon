@@ -79,10 +79,6 @@ class Abjects():
         print('query:', d)
         return self
 
-    async def upsert(self, **d):
-        print('upsert:')
-        print(d)
-
     async def update(self, **d):
         print('update')
         print(d)
@@ -161,15 +157,11 @@ class ImportFile(object):
                 cls._collection.drop()
             if method == 'insert':
                 cls.objects.insert(data)
-            elif method == 'upsert':
+            else:
+                upsert = True if method == 'upsert' else False
                 for row in data:
                     key, value = _split(row, keys)
-                    cls.objects(**key).upsert(**value)
-            elif method == 'update':
-                for row in data:
-                    key, value = _split(row, keys)
-                    cls.objects(**key).update(**value)
-            return len(data)
+                    cls.objects(**key).update(upsert=upsert, **value)
 
     @classmethod
     async def amport_file(cls, filename, dupcheck=False, drop=False, method='insert', keys='_id', **kw):
@@ -186,14 +178,11 @@ class ImportFile(object):
                 cls._collection.drop()
             if method == 'insert':
                 await cls.abjects.insert(data)
-            elif method == 'upsert':
+            else:
+                upsert = True if method == 'upsert' else False
                 for row in data:
                     key, value = _split(row, keys)
-                    await cls.abjects(**key).upsert(**value)
-            elif method == 'update':
-                for row in data:
-                    key, value = _split(row, keys)
-                    await cls.abjects(**key).update(**value)
+                    await cls.abjects(**key).update(upsert=upsert, **value)
             return len(data)
 
 
