@@ -8,21 +8,22 @@
 from orange import *
 from orange.config import Config
 import sys
-__config=None
+__config = None
 
-def config(is_dev=None,db=None):
+
+def config(is_dev=None, db=None):
     global __config
     if not __config:
         if is_dev is None:
-            is_dev=not('wsgi' in sys.argv[0] or is_installed(sys.argv[0])\
-                       ) or 'test' in sys.argv[0]
-        _config=Config(project='mongo',is_dev=is_dev)
+            is_dev = not('wsgi' in sys.argv[0] or is_installed(sys.argv[0])
+                         ) or 'test' in sys.argv[0]
+        _config = Config(project='mongo', is_dev=is_dev)
         _config.load_config()
-        config=_config.get('database') or {}
-        config.setdefault('host','mongodb://localhost/mongo')
-        config.setdefault('tz_aware',True)
-        config.setdefault('connect',False)
-        if _config.is_dev :
-            config['host']='mongodb://localhost/test'
-        __config=config
+        config = _config.get('database') or {}
+        config.setdefault('host', 'mongodb://localhost/mongo')
+        config.setdefault('tz_aware', True)
+        config.setdefault('connect', False)
+        if _config.is_dev:
+            config['host'] = 'mongodb://localhost/test'
+        __config = config
     return __config
