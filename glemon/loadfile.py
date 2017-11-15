@@ -5,11 +5,9 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-11-13
 
-from glemon.loadcheck import LoadFile
+
 from orange import Path, decode
 from orange.coroutine import *
-
-methods = set(['insert', 'upsert', 'update'])
 
 
 def _read(filename):
@@ -42,48 +40,6 @@ FILETYPES = {
 }
 
 
-def _split(data, keys='_id'):
-    if isinstance(keys, str):
-        key = {keys: data.pop(keys)}
-    else:
-        key = {k: data.pop(k)for k in keys}
-    return key, data
-
-
-class Objects():
-
-    def insert(self, data):
-        for d in data:
-            print(d)
-
-    def __call__(self, **d):
-        print('query:', d)
-        return self
-
-    def upsert(self, **d):
-        print('upsert:')
-        print(d)
-
-    def update(self, **d):
-        print('update')
-        print(d)
-
-
-class Abjects():
-
-    async def insert(self, data):
-        for d in data:
-            print(d)
-
-    def __call__(self, **d):
-        print('query:', d)
-        return self
-
-    async def update(self, **d):
-        print('update')
-        print(d)
-
-
 class ImportFile(object):
     '''导入文件类，可以做为基类'''
     _load_mapper = None  # 导入数据时的表头，主要用于跳过标题行
@@ -92,11 +48,9 @@ class ImportFile(object):
     _collection = None
     # 可以是一个字段，也可以是多个字段，必须为list或
     # tuple或str
-    objects = Objects()
-    abjects = Abjects()
 
     @classmethod
-    def _proc_data(cls, data, fields=None, mapper=None, header=None, **kw):
+    def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
         mapper = mapper or cls._load_mapper
         header = header or cls._load_header
         if isinstance(header, str):
@@ -104,7 +58,6 @@ class ImportFile(object):
         fields = fields or cls._projects
         if(not header)and isinstance(mapper, dict):
             header = [x for x in mapper.values()if isinstance(x, str)]
-
         if header:
             for i, row in enumerate(data):
                 if all(x in row for x in header):
@@ -113,28 +66,25 @@ class ImportFile(object):
                 new_mapper = {x: row.index(y) for x,
                               y in mapper.items() if isinstance(y, str)}
                 mapper.update(new_mapper)
-                mapper = [mapper[x] for x in fields]
             data = data[i+1:]
-        datas = []
-        field_count = len(mapper) if mapper else len(fields)
-
-        def add(row):
-            d = cls._check_row(row)
-            if d:
-                datas.append(dict(zip(fields, d)))
-        if mapper:
-            [add([row[x] for x in mapper]) for row in data
-             if len(row) >= field_count]
+        if not mapper:
+            mapper = dict(zip(fields, range(len(fields))))
+        elif not isinstance(mapper, dict):
+            mapper = dict(zip(fields, mapper))
+        if method == 'insert':
+            return [{k: row[v] for k, v in mapper.items()}for row in data]
         else:
-            [add(row) for row in data if len(row) >= field_count]
-        return datas
+            keys = keys if isinstance(keys, (tuple, list)) else (keys,)
+            val_mapper = mapper.copy()
+            key_mapper = {key: val_mapper.pop(key) for key in keys}
+            def _extract(row):
+                return {k: row[v] for k, v in key_mapper.items()},\
+                    {k: row[v] for k, v in val_mapper.items()},
+            return (_extract(row)for row in data)
 
     @classmethod
-    def _check_row(cls, row):
-        return row
-
-    @classmethod
-    def __dupchek(cls, filename):
+    def _dupcheck(cls, filename):
+        from .loadcheck import LoadFile
         if LoadFile.check(cls.__name__, filename):
             raise FileImported(filename)
 
@@ -144,14 +94,18 @@ class ImportFile(object):
 
     @classmethod
     def import_file(cls, filename, dupcheck=False, drop=False, method='insert', keys='_id', **kw):
-        dupcheck and cls.__dupcheck(filename)  # 防重复文件检查
-        data = _read(str(filename))          # 读取文件
+        dupcheck and cls._dupcheck(filename)          # 防重复文件检查
+        data = _read(str(filename))                   # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
-        if proc != 'proc_xls':           # 非Excel文件，需要先进行解码
+        if proc != 'proc_xls':                        # 非Excel文件，需要先进行解码
             data = decode(data)
             data = data.splitlines()
         data = getattr(cls, proc)(data, **kw)
-        data = cls._proc_data(data, **kw)
+        cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
+
+    @classmethod
+    def _load_data(cls, data, drop=False, method='insert', keys='_id', **kw):
+        data = cls._proc_data(data, method=method, keys=keys, **kw)
         if data:
             if drop:
                 cls._collection.drop()
@@ -159,35 +113,31 @@ class ImportFile(object):
                 cls.objects.insert(data)
             else:
                 upsert = True if method == 'upsert' else False
-                for row in data:
-                    key, value = _split(row, keys)
-                    cls.objects(**key).update(upsert=upsert, **value)
+                for f, u in data:
+                    cls._collection.update_one(f, {'$set': u}, upsert=upsert)
 
     @classmethod
-    async def amport_file(cls, filename, dupcheck=False, drop=False, method='insert', keys='_id', **kw):
-        dupcheck and cls.__dupcheck(filename)  # 防重复文件检查
-        data = await _asyncio_read(str(filename))          # 读取文件
+    async def amport_file(cls, filename, dupcheck=True, dup_check=True, clear=False, drop=False, method='insert', keys='_id', **kw):
+        drop = clear or drop
+        dupcheck = dupcheck and dup_check
+        dupcheck and cls._dupcheck(filename)          # 防重复文件检查
+        data = await _asyncio_read(str(filename))     # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
-        if proc != 'proc_xls':           # 非Excel文件，需要先进行解码
+        if proc != 'proc_xls':                        # 非Excel文件，需要先进行解码
             data = decode(data)
             data = data.splitlines()
         data = getattr(cls, proc)(data, **kw)
-        data = cls._proc_data(data, **kw)
+        await cls._aload_data(data, method=method, keys=keys, **kw)
+
+    @classmethod
+    async def _aload_data(cls, data, drop=False, method='insert', keys='_id', **kw):
+        data = cls._proc_data(data, method=method, keys=keys, **kw)
         if data:
             if drop:
                 cls._collection.drop()
             if method == 'insert':
-                await cls.abjects.insert(data)
+                await cls.abjects.insert_one(data)
             else:
-                upsert = True if method == 'upsert' else False
-                for row in data:
-                    key, value = _split(row, keys)
-                    await cls.abjects(**key).update(upsert=upsert, **value)
-            return len(data)
-
-
-if __name__ == '__main__':
-    f = Path(r'~\OneDrive\工作\参数备份\运营管理2017-10\shendawei\ggbzb.del')
-    a = ImportFile()
-    run(a.amport_file(f, fields='a,b,c'.split(','), keys=('a', 'b'),
-                      mapper=(0, 1, 2), method='upsert'))
+                proc = cls._acollection.update
+                upsert = method == 'upsert'
+                await wait([proc(f, u, upsert=upsert) for f, u in data])

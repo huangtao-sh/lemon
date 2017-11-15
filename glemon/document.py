@@ -8,6 +8,7 @@
 from pymongo import *
 from .query import *
 from .config import *
+from .loadfile import ImportFile
 
 
 class DocumentMeta(type):
@@ -43,16 +44,12 @@ class DocumentMeta(type):
         return cls._acollection.insert_many(*args, **kw)
 
 
-class Document(dict, metaclass=DocumentMeta):
+class Document(dict, ImportFile, metaclass=DocumentMeta):
     __db = None
     __adb = None
     _projects = ()
     _textfmt = ''    # 文本格式
     _htmlfmt = ''    # 超文本格式
-    _load_mapper = None  # 导入数据时的表头，主要用于跳过标题行
-    _load_header = None  # 导入数据时的表头，主要用于跳过标题行，
-    # 可以是一个字段，也可以是多个字段，必须为list或
-    # tuple或str
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
