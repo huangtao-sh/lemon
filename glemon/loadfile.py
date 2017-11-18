@@ -117,7 +117,7 @@ class ImportFile(object):
                     cls._collection.update_one(f, {'$set': u}, upsert=upsert)
 
     @classmethod
-    async def amport_file(cls, filename, dupcheck=True, dup_check=True, clear=False, drop=False, method='insert', keys='_id', **kw):
+    async def amport_file(cls, filename, dupcheck=True, drop=False, method='insert', keys='_id', **kw):
         drop = clear or drop
         dupcheck = dupcheck and dup_check
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查

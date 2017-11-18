@@ -53,12 +53,17 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
-        '''通过文件批量导入数据
+        for fn in files:
+            await cls.amport_file(fn, drop=clear, dupcheck=dup_check, **kw)
+    '''
+    @classmethod
+    async def load_files(cls, *files, clear=False, dup_check=True, **kw):
+        """通过文件批量导入数据
         files: 导入文件清单
         clear：清理原表中的数据，默认为不清理
         dup_check：重复导入检查，默认为检查
         kw：其他参数
-        '''
+        """
         from .loadcheck import LoadFile
         if dup_check and clear:
             # 如果检查重复为真，则检查文件
@@ -139,6 +144,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             [add(row) for row in data if len(row) >= field_count]
         if datas:
             await cls.abjects.insert(datas)
+    '''
 
     @property
     def id(self):
