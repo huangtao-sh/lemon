@@ -22,7 +22,7 @@ def _split(data, step=1000):
     length = len(data)
     i = 0
     for i in range(step, length, step):
-        yield data[i-step:i]
+        yield data[i - step:i]
     else:
         yield data[i:]
 
@@ -68,7 +68,7 @@ class BaseQuery(object):
         if per_page > 1:
             self._per_page = per_page
             count = self.count(True)
-            self._pages = math.ceil(count/per_page)
+            self._pages = math.ceil(count / per_page)
         if page >= 1:
             ensure(((page >= 1) and (page <= self.pages)), "页码超限！")
             self._page = page
@@ -134,9 +134,9 @@ class BaseQuery(object):
         if self._modified:
             skip, limit = self._skip, self._limit
             if self.is_paginated:
-                skip += (self._page-1)*self.per_page
+                skip += (self._page - 1) * self.per_page
                 if limit:
-                    limit -= (self._page-1)*self.per_page
+                    limit -= (self._page - 1) * self.per_page
                     limit = min(limit, self.per_page)
                 else:
                     limit = self.per_page
@@ -219,7 +219,7 @@ class BaseQuery(object):
             pages += 1
         ensure((page > 0)and(page <= pages), '页码超限！')
         skip, limit = self._skip, self._limit  # 保存当前状态
-        self._skip = self._skip+(page-1)*per_page
+        self._skip = self._skip + (page - 1) * per_page
         self._limit = per_page
         self.rewind()
         items = list(self)
@@ -276,7 +276,7 @@ class AsyncioQuery(BaseQuery):
         if per_page > 1:
             self._per_page = per_page
             count = await self.count(True)
-            self._pages = math.ceil(count/per_page)
+            self._pages = math.ceil(count / per_page)
         if page >= 1:
             ensure(((page >= 1) and (page <= self.pages)), "页码超限！")
             self._page = page
@@ -321,7 +321,7 @@ class AsyncioQuery(BaseQuery):
             pages += 1
         ensure((page > 0)and(page <= pages), '页码超限！')
         skip, limit = self._skip, self._limit  # 保存当前状态
-        self._skip = self._skip+(page-1)*per_page
+        self._skip = self._skip + (page - 1) * per_page
         self._limit = per_page
         self.rewind()
         items = []
@@ -356,10 +356,10 @@ class Aggregation:
         if error_out and page < 1:
             abort(404)
         pipeline = self.pipeline.copy()
-        pipeline.append({'$skip': (page-1)*per_page})
+        pipeline.append({'$skip': (page - 1) * per_page})
         items = [i for i in
                  self.collection.aggregate(pipeline, **self.kw)]
-        total = (page-1)*per_page+len(items)
+        total = (page - 1) * per_page + len(items)
         items = items[:per_page]
         if not items and page != 1 and error_out:
             abort(404)
