@@ -272,6 +272,17 @@ class BaseQuery(object):
 
 class AsyncioQuery(BaseQuery):
 
+    async def paginate(self, page=1, per_page=0):
+        if per_page > 1:
+            self._per_page = per_page
+            count = await self.count(True)
+            self._pages = math.ceil(count/per_page)
+        if page >= 1:
+            ensure(((page >= 1) and (page <= self.pages)), "页码超限！")
+            self._page = page
+        self._modified = True
+        return self
+
     @property
     def collection(self):
         return self.document._acollection
@@ -303,7 +314,7 @@ class AsyncioQuery(BaseQuery):
         async for i in self:
             yield extract(i)
 
-    async def paginate(self, page, per_page=20):
+    async def _paginate(self, page, per_page=20):
         total = await self.cursor.count(True)
         pages, m = divmod(total, per_page)
         if m:
