@@ -12,10 +12,10 @@ import json
 class CachedQuery(Document):
     _projects = '_id', "module", "name", "query", "extra"
     '''
-	缓存查询，主要用于网页分页查询使用，
-	第一次查询时，可以进行缓存
-	后续使用分页来进行调取
-	'''
+    缓存查询，主要用于网页分页查询使用，
+    第一次查询时，可以进行缓存
+    后续使用分页来进行调取
+    '''
 
     @classmethod
     def dumps(cls, query, **kw):
@@ -25,14 +25,17 @@ class CachedQuery(Document):
                    extra=kw).save()
 
     @classmethod
-    def loads(cls, _id):
+    def loads(cls, _id, kw=None):
         obj = cls.objects.get(_id)
         if obj:
             module = __import__(obj.module)
             document = getattr(module, obj.name)
             objects = document.objects
             objects.__dict__.update(json.loads(obj.query))
-            objects.extra = obj.extra
+            if kw:
+                kw.update(obj.extra)
+            else:
+                objects.extra = obj.extra
             return objects
 
 
