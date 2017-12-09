@@ -4,5 +4,6 @@
 # 创建：2017-07-22
 
 from .document import config, P, Document
+from .cachedquery import load_query
 
-__all__ = 'config', 'P', 'Document'
+__all__ = 'config', 'P', 'Document', 'load_query'

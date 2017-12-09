@@ -163,6 +163,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             else:
                 self._collection.insert_one(self)
             self._modified = False
+        return self
 
     async def asave(self):
         if self._modified:
@@ -173,6 +174,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             else:
                 await self._collection.insert_one(self)
             self._modified = False
+        return self
 
     def __setitem__(self, *args, **kw):
         self._modified = True
