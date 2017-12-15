@@ -52,7 +52,7 @@ class ImportFile(object):
 
     @classmethod
     def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
-        mapper = mapper or cls._load_mapper.copy()
+        mapper = mapper or cls._load_mapper or cls._load_mapper.copy()
         header = header or cls._load_header
         if isinstance(header, str):
             header = (header,)
