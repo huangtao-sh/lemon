@@ -8,6 +8,7 @@
 
 from orange import Path, decode
 from orange.coroutine import *
+import xlrd
 
 
 def _read(filename):
@@ -51,7 +52,7 @@ class ImportFile(object):
 
     @classmethod
     def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
-        mapper = mapper or cls._load_mapper
+        mapper = mapper or cls._load_mapper.copy()
         header = header or cls._load_header
         if isinstance(header, str):
             header = (header,)
@@ -66,7 +67,7 @@ class ImportFile(object):
                 new_mapper = {x: row.index(y) for x,
                               y in mapper.items() if isinstance(y, str)}
                 mapper.update(new_mapper)
-            data = data[i+1:]
+            data = data[i + 1:]
         if not mapper:
             mapper = dict(zip(fields, range(len(fields))))
         elif not isinstance(mapper, dict):
@@ -93,15 +94,32 @@ class ImportFile(object):
         return [eval(x)for x in data if x]
 
     @classmethod
-    def import_file(cls, filename, dupcheck=False, drop=False, method='insert', keys='_id', **kw):
+    def _proc_xls(cls, data, **kw):
+        book = xlrd.open_workbook(file_contents=data)
+        for index, sheet in enumerate(book.sheets()):
+            yield cls._proc_sheet(index=index, name=sheet.name,
+                                  data=sheet._cell_values, **kw)
+
+    @classmethod
+    def _proc_sheet(cls, index, name, data, **kw):
+        return cls, data
+
+    @classmethod
+    def import_file(cls, filename, dupcheck=False, drop=False, 
+                    method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = _read(str(filename))                   # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
-        if proc != 'proc_xls':                        # 非Excel文件，需要先进行解码
-            data = decode(data)
-            data = data.splitlines()
-        data = getattr(cls, proc)(data, **kw)
-        cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
+        if proc == '_proc_xls':
+            for c, data in cls._proc_xls(data, **kw):
+                if c and data:
+                    getattr(c, '_load_data')(data, drop=drop, method=method, 
+                                             keys=keys, **kw)
+        else:                        # 非Excel文件，需要先进行解码
+            data = decode(data).splitlines()
+            data = getattr(cls, proc)(data, **kw)
+            if data:
+                cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
 
     @classmethod
     def _load_data(cls, data, drop=False, method='insert', keys='_id', **kw):
@@ -117,17 +135,21 @@ class ImportFile(object):
                     cls._collection.update_one(f, {'$set': u}, upsert=upsert)
 
     @classmethod
-    async def amport_file(cls, filename, dupcheck=True, drop=False, method='insert', keys='_id', **kw):
-        drop = clear or drop
-        dupcheck = dupcheck and dup_check
+    async def amport_file(cls, filename, dupcheck=False, drop=False,
+                          method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = await _asyncio_read(str(filename))     # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
-        if proc != 'proc_xls':                        # 非Excel文件，需要先进行解码
-            data = decode(data)
-            data = data.splitlines()
-        data = getattr(cls, proc)(data, **kw)
-        await cls._aload_data(data, method=method, keys=keys, **kw)
+        if proc == '_proc_xls':
+            for c, data in cls._proc_xls(data, **kw):
+                if c and data:
+                    await getattr(c, '_aload_data')(data, drop=drop, 
+                                                    method=method, keys=keys, **kw)
+        else:                        # 非Excel文件，需要先进行解码
+            data = decode(data).splitlines()
+            data = getattr(cls, proc)(data, **kw)
+            if data:
+                await cls._aload_data(data, method=method, keys=keys, **kw)
 
     @classmethod
     async def _aload_data(cls, data, drop=False, method='insert', keys='_id', **kw):
@@ -136,7 +158,7 @@ class ImportFile(object):
             if drop:
                 cls._collection.drop()
             if method == 'insert':
-                await cls.abjects.insert_one(data)
+                await cls.abjects.insert(data)
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'
