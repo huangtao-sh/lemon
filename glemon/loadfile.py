@@ -52,7 +52,7 @@ class ImportFile(object):
 
     @classmethod
     def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
-        mapper = mapper or cls._load_mapper or cls._load_mapper.copy()
+        mapper = mapper or (cls._load_mapper and cls._load_mapper.copy())
         header = header or cls._load_header
         if isinstance(header, str):
             header = (header,)
@@ -91,7 +91,8 @@ class ImportFile(object):
 
     @classmethod
     def _proc_del(cls, data, **kw):
-        return [eval(x)for x in data if x]
+        _ = lambda x: x if isinstance(x, tuple) else (x,)
+        return [_(eval(x)) for x in data if x]
 
     @classmethod
     def _proc_xls(cls, data, **kw):
@@ -141,15 +142,16 @@ class ImportFile(object):
         data = await _asyncio_read(str(filename))     # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
         if proc == '_proc_xls':
-            for c, data in cls._proc_xls(data, **kw):
-                if c and data:
+            for result in cls._proc_xls(data, **kw):
+                if result:
+                    c, data = result
                     await getattr(c, '_aload_data')(data, drop=drop, 
                                                     method=method, keys=keys, **kw)
         else:                        # 非Excel文件，需要先进行解码
             data = decode(data).splitlines()
             data = getattr(cls, proc)(data, **kw)
             if data:
-                await cls._aload_data(data, method=method, keys=keys, **kw)
+                await cls._aload_data(data, method=method, keys=keys, drop=drop ** kw)
 
     @classmethod
     async def _aload_data(cls, data, drop=False, method='insert', keys='_id', **kw):
