@@ -53,7 +53,7 @@ class ImportFile(object):
     @classmethod
     def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
         mapper = mapper or (cls._load_mapper and cls._load_mapper.copy())
-        header = header or cls._load_header
+        header = header or (cls._load_header and cls._load_header.copy())
         if isinstance(header, str):
             header = (header,)
         fields = fields or cls._projects
@@ -93,6 +93,10 @@ class ImportFile(object):
     def _proc_del(cls, data, **kw):
         _ = lambda x: x if isinstance(x, tuple) else (x,)
         return [_(eval(x)) for x in data if x]
+
+    @classmethod
+    def _proc_csv(cls, data, **kw):
+        return [[x.strip() for x in row.split(',')] for row in data if row]
 
     @classmethod
     def _proc_xls(cls, data, **kw):
