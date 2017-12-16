@@ -151,7 +151,7 @@ class ImportFile(object):
             data = decode(data).splitlines()
             data = getattr(cls, proc)(data, **kw)
             if data:
-                await cls._aload_data(data, method=method, keys=keys, drop=drop ** kw)
+                await cls._aload_data(data, method=method, keys=keys, drop=drop, ** kw)
 
     @classmethod
     async def _aload_data(cls, data, drop=False, method='insert', keys='_id', **kw):
