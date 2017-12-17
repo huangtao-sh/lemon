@@ -7,6 +7,7 @@
 
 from glemon import *
 import json
+from importlib import import_module
 
 
 class CachedQuery(Document):
@@ -28,7 +29,7 @@ class CachedQuery(Document):
     def loads(cls, _id, kw=None):
         obj = cls.objects.get(_id)
         if obj:
-            module = __import__(obj.module)
+            module = import_module(obj.module)
             document = getattr(module, obj.name)
             objects = document.objects
             objects.__dict__.update(json.loads(obj.query))
