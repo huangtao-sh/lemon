@@ -125,6 +125,7 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
+                print('导入数据文件%s成功' % (filename))
 
     @classmethod
     def _load_data(cls, data, drop=False, method='insert', keys='_id', **kw):
@@ -156,6 +157,7 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 await cls._aload_data(data, method=method, keys=keys, drop=drop, ** kw)
+                print('导入数据文件%s成功' % (filename))
 
     @classmethod
     async def _aload_data(cls, data, drop=False, method='insert', keys='_id', **kw):
