@@ -125,6 +125,8 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
+                if dupcheck:
+                    LoadFile.save(cls.__name__, filename)
                 print('导入数据文件%s成功' % (filename))
 
     @classmethod
@@ -157,6 +159,8 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 await cls._aload_data(data, method=method, keys=keys, drop=drop, ** kw)
+                if dupcheck:
+                    LoadFile.save(cls.__name__, filename)
                 print('导入数据文件%s成功' % (filename))
 
     @classmethod
