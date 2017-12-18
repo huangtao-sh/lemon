@@ -86,8 +86,13 @@ class ImportFile(object):
     @classmethod
     def _dupcheck(cls, filename):
         from .loadcheck import LoadFile
-        if LoadFile.check(cls.__name__, filename):
+        if not LoadFile.check(cls.__name__, filename):
             raise FileImported(filename)
+
+    @classmethod
+    def _importsave(cls, filename):
+        from .loadcheck import LoadFile
+        LoadFIle.save(cls.__name__, filename)
 
     @classmethod
     def _proc_del(cls, data, **kw):
@@ -125,8 +130,7 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
-                if dupcheck:
-                    LoadFile.save(cls.__name__, filename)
+                dupcheck and cls._importsave(filename)
                 print('导入数据文件%s成功' % (filename))
 
     @classmethod
@@ -159,8 +163,7 @@ class ImportFile(object):
             data = getattr(cls, proc)(data, **kw)
             if data:
                 await cls._aload_data(data, method=method, keys=keys, drop=drop, ** kw)
-                if dupcheck:
-                    LoadFile.save(cls.__name__, filename)
+                dupcheck and cls._importsave(filename)
                 print('导入数据文件%s成功' % (filename))
 
     @classmethod
