@@ -8,6 +8,7 @@
 
 from orange import Path, decode
 from orange.coroutine import *
+from .loadcheck import LoadFile
 import xlrd
 
 
@@ -29,7 +30,7 @@ class FileImported(Exception):
         self.filename = filename
 
     def __str__(self):
-        return '文件 %s 已导入数据库' % (self.filename)
+        return '文件 %s 已导入数据库，跳过' % (self.filename)
 
 FILETYPES = {
     '.del': '_proc_del',
@@ -85,14 +86,12 @@ class ImportFile(object):
 
     @classmethod
     def _dupcheck(cls, filename):
-        from .loadcheck import LoadFile
         if not LoadFile.check(cls.__name__, filename):
             raise FileImported(filename)
 
     @classmethod
     def _importsave(cls, filename):
-        from .loadcheck import LoadFile
-        LoadFIle.save(cls.__name__, filename)
+        LoadFile.save(cls.__name__, filename)
 
     @classmethod
     def _proc_del(cls, data, **kw):
