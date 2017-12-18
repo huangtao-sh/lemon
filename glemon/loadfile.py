@@ -8,7 +8,6 @@
 
 from orange import Path, decode
 from orange.coroutine import *
-from .loadcheck import LoadFile
 import xlrd
 
 
@@ -86,11 +85,13 @@ class ImportFile(object):
 
     @classmethod
     def _dupcheck(cls, filename):
+        from .loadcheck import LoadFile
         if not LoadFile.check(cls.__name__, filename):
             raise FileImported(filename)
 
     @classmethod
     def _importsave(cls, filename):
+        from .loadcheck import LoadFile
         LoadFile.save(cls.__name__, filename)
 
     @classmethod
