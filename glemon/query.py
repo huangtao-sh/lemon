@@ -56,6 +56,42 @@ class BaseQuery(object):
     def items(self):
         return self
 
+    def iter_pages(self, left_edge=2, left_current=2,
+                   right_current=5, right_edge=2):
+        """Iterates over the page numbers in the pagination.  The four
+        parameters control the thresholds how many numbers should be produced
+        from the sides.  Skipped page numbers are represented as `None`.
+        This is how you could render such a pagination in the templates:
+
+        .. sourcecode:: html+jinja
+
+            {% macro render_pagination(pagination, endpoint) %}
+              <div class=pagination>
+              {%- for page in pagination.iter_pages() %}
+                {% if page %}
+                  {% if page != pagination.page %}
+                    <a href="{{ url_for(endpoint, page=page) }}">{{ page }}</a>
+                  {% else %}
+                    <strong>{{ page }}</strong>
+                  {% endif %}
+                {% else %}
+                  <span class=ellipsis>…</span>
+                {% endif %}
+              {%- endfor %}
+              </div>
+            {% endmacro %}
+        """
+        last = 0
+        for num in range(1, self.pages + 1):
+            if num <= left_edge or \
+               (num > self._page - left_current - 1 and
+                num < self._page + right_current) or \
+               num > self.pages - right_edge:
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
+
     @property
     def pages(self):
         return self._pages
