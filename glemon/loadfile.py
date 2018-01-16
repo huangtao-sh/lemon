@@ -64,9 +64,14 @@ class ImportFile(object):
                 if all(x in row for x in header):
                     break
             if isinstance(mapper, dict):
-                new_mapper = {x: row.index(y) for x,
-                              y in mapper.items() if isinstance(y, str)}
-                mapper.update(new_mapper)
+                new_mapper = {}
+                for x, y in mapper.items():
+                    if isinstance(y, int):
+                        new_mapper[x] = y
+                    elif isinstance(y, str):
+                        if y in row:
+                            new_mapper[x] = row.index(y)
+                mapper = new_mapper
             data = data[i + 1:]
         if not mapper:
             mapper = dict(zip(fields, range(len(fields))))
