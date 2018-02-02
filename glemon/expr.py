@@ -14,6 +14,7 @@ class _P(type):
 
     __getattr__ = __getitem__
 
+
 OPERATORS = {
     # update operator
     'set': '$set',

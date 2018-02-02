@@ -5,5 +5,6 @@
 
 from .document import config, P, Document
 from .cachedquery import load_query
+from .__version__ import version as __version__
 
-__all__ = 'config', 'P', 'Document', 'load_query'
+__all__ = 'config', 'P', 'Document', 'load_query', '__version__'
