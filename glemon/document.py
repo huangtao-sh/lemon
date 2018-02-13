@@ -137,3 +137,8 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             self[name] = value
         else:
             super().__setattr__(name, value)
+
+    def update(self,*args,**kw):
+        self._modified=True
+        self.update(*args,**kw)
+        
