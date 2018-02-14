@@ -12,7 +12,6 @@ setup(
         name='glemon',
         author='黄涛',
         author_email='hunto@163.com',
-        platforms='any',
         description='glemon',
         install_requires=requires,
         long_description='glemon',
