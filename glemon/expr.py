@@ -32,6 +32,7 @@ OPERATORS = {
 
     # project operator
     'slice': '$slice',
+    'substr': '$substr',
 
     # query operator
     'in_': '$in',
@@ -193,7 +194,8 @@ class _Operator():
         else:
             kw = self.args
         if self.invert:
-            if self.operator:
+            # regex 不支持使用 $ne，故使用 $not
+            if self.operator or hasattr(self.args, 'pattern'):
                 kw = {'$not': kw}
             else:
                 kw = {'$ne': self.args}
