@@ -6,7 +6,7 @@
 # 创建：2017-11-13
 
 
-from orange import Path, decode
+from orange import Path, decode,split
 from orange.coroutine import *
 import xlrd
 
@@ -178,7 +178,8 @@ class ImportFile(object):
             if drop:
                 cls._collection.drop()
             if method == 'insert':
-                await cls.abjects.insert(data)
+                # await cls.abjects.insert(data)
+                await wait([cls.object.insert(d)for d in split(data)])
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'
