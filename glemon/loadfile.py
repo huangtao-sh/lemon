@@ -179,6 +179,7 @@ class ImportFile(object):
                 cls._collection.drop()
             if method == 'insert':
                 # await cls.abjects.insert(data)
+                data=list(data)
                 await wait([cls.object.insert(d)for d in split(data)])
             else:
                 proc = cls._acollection.update
