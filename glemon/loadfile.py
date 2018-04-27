@@ -6,7 +6,7 @@
 # 创建：2017-11-13
 
 
-from orange import Path, decode,split
+from orange import Path, decode, split
 from orange.coroutine import *
 import xlrd
 
@@ -30,6 +30,7 @@ class FileImported(Exception):
 
     def __str__(self):
         return '文件 %s 已导入数据库，跳过' % (self.filename)
+
 
 FILETYPES = {
     '.del': '_proc_del',
@@ -83,6 +84,7 @@ class ImportFile(object):
             keys = keys if isinstance(keys, (tuple, list)) else (keys,)
             val_mapper = mapper.copy()
             key_mapper = {key: val_mapper.pop(key) for key in keys}
+
             def _extract(row):
                 return {k: row[v] for k, v in key_mapper.items()},\
                     {k: row[v] for k, v in val_mapper.items()},
@@ -101,7 +103,7 @@ class ImportFile(object):
 
     @classmethod
     def _proc_del(cls, data, **kw):
-        _ = lambda x: x if isinstance(x, tuple) else (x,)
+        def _(x): return x if isinstance(x, tuple) else (x,)
         return [_(eval(x)) for x in data if x]
 
     @classmethod
@@ -120,7 +122,7 @@ class ImportFile(object):
         return cls, data
 
     @classmethod
-    def import_file(cls, filename, dupcheck=False, drop=False, 
+    def import_file(cls, filename, dupcheck=False, drop=False,
                     method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = _read(str(filename))                   # 读取文件
@@ -128,7 +130,7 @@ class ImportFile(object):
         if proc == '_proc_xls':
             for c, data in cls._proc_xls(data, **kw):
                 if c and data:
-                    getattr(c, '_load_data')(data, drop=drop, method=method, 
+                    getattr(c, '_load_data')(data, drop=drop, method=method,
                                              keys=keys, **kw)
         else:                        # 非Excel文件，需要先进行解码
             data = decode(data).splitlines()
@@ -161,7 +163,7 @@ class ImportFile(object):
             for result in cls._proc_xls(data, **kw):
                 if result:
                     c, data = result
-                    await getattr(c, '_aload_data')(data, drop=drop, 
+                    await getattr(c, '_aload_data')(data, drop=drop,
                                                     method=method, keys=keys, **kw)
         else:                        # 非Excel文件，需要先进行解码
             data = decode(data).splitlines()
@@ -179,8 +181,8 @@ class ImportFile(object):
                 cls._collection.drop()
             if method == 'insert':
                 # await cls.abjects.insert(data)
-                data=list(data)
-                await wait([cls.object.insert(d)for d in split(data)])
+                data = list(data)
+                await wait([cls.abject.insert(d)for d in split(data)])
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'

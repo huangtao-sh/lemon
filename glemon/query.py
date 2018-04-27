@@ -229,9 +229,9 @@ class BaseQuery(object):
     def scalar(self, *fields):
         self.project(*fields)
         if len(fields) == 1:
-            extract = lambda d: d.values(*fields)[0]
+            def extract(d): return d.values(*fields)[0]
         else:
-            extract = lambda d: d.values(*fields)
+            def extract(d): return d.values(*fields)
         for d in self:
             yield extract(d)
 
@@ -344,9 +344,9 @@ class AsyncioQuery(BaseQuery):
     async def scalar(self, *fields):
         self.project(*fields)
         if len(fields) == 1:
-            extract = lambda d: d.values(*fields)[0]
+            def extract(d): return d.values(*fields)[0]
         else:
-            extract = lambda d: d.values(*fields)
+            def extract(d): return d.values(*fields)
         async for i in self:
             yield extract(i)
 
@@ -461,3 +461,13 @@ class Aggregation:
                mapper=None):
         '''导出数据'''
         pass
+
+    def scalar(self, *fields):
+        for obj in self:
+            row = []
+            for field in fields:
+                for name in field.split('.'):
+                    value = obj[name]
+                    name = value
+                row.append(value)
+            yield row
