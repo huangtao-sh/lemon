@@ -106,8 +106,8 @@ class ImportFile(object):
         rows = []
         for row in data:
             if row:
-                row = (x.strip() if isinstance(x, str)
-                       else x for x in eval(row))
+                row = [x.strip() if isinstance(x, str)
+                       else x for x in eval(row)]
             rows.append(row)
         return rows
 
