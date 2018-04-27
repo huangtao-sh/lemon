@@ -7,7 +7,7 @@
 
 
 from orange import Path, decode, split
-from orange.coroutine import *
+from orange.coroutine import wait
 import xlrd
 
 

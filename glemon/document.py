@@ -5,11 +5,11 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-07-22 09:52
 
-from pymongo import *
-from .query import *
-from .config import *
+from pymongo import MongoClient
+from orange import convert_cls_name,cachedproperty
+from .query import BaseQuery, Aggregation, AsyncioQuery,P
+from .config import config
 from .loadfile import ImportFile
-
 
 class DocumentMeta(type):
     _db_cache = {}
@@ -138,7 +138,6 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         else:
             super().__setattr__(name, value)
 
-    def update(self,*args,**kw):
-        self._modified=True
-        self.update(*args,**kw)
-        
+    def update(self, *args, **kw):
+        self._modified = True
+        self.update(*args, **kw)

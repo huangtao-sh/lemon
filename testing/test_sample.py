@@ -9,6 +9,7 @@ import glemon.query
 import glemon.cachedquery
 import glemon.config
 import glemon.shadow
+import glemon.expr
 
 
 class Test(Document):

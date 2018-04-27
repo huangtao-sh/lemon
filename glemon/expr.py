@@ -1,5 +1,5 @@
-from functools import *
-from orange import *
+# from functools import *
+# from orange import *
 
 
 class _P(type):
