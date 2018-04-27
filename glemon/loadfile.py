@@ -103,8 +103,13 @@ class ImportFile(object):
 
     @classmethod
     def _proc_del(cls, data, **kw):
-        def _(x): return x if isinstance(x, tuple) else (x,)
-        return [_(eval(x)) for x in data if x]
+        rows = []
+        for row in data:
+            if row:
+                row = (x.strip() if isinstance(x, str)
+                       else x for x in eval(row))
+            rows.append(row)
+        return rows
 
     @classmethod
     def _proc_csv(cls, data, **kw):
@@ -182,7 +187,7 @@ class ImportFile(object):
             if method == 'insert':
                 # await cls.abjects.insert(data)
                 data = list(data)
-                await wait([cls.abject.insert(d)for d in split(data)])
+                await wait([cls.abjects.insert(d)for d in split(data)])
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'
