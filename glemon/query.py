@@ -466,8 +466,11 @@ class Aggregation:
         for obj in self:
             row = []
             for field in fields:
-                for name in field.split('.'):
-                    value = obj[name]
-                    name = value
+                if '.' in field:
+                    value = obj
+                    for name in field.split('.'):
+                        value = value[name]
+                else:
+                    value = obj[field]
                 row.append(value)
             yield row

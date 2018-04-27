@@ -5,11 +5,13 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-10-14 07:58
 
-from orange import *
-from .document import *
+from orange import encrypt, decrypt
+from .document import Document
 
 PASSWORDNAMES = {'passwd', 'password'}   # 定义密码字段名称
-chkpwd = lambda x: x.lower() in PASSWORDNAMES
+
+
+def chkpwd(x): return x.lower() in PASSWORDNAMES
 
 
 class Shadow(Document):           # 配置库

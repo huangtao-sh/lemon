@@ -1,7 +1,14 @@
 import unittest
-from glemon import *
-from orange.coroutine import *
+from glemon import Document, P
+from orange.coroutine import run
 from orange import Path
+import glemon.paginate
+import glemon.loadfile
+import glemon.loadcheck
+import glemon.query
+import glemon.cachedquery
+import glemon.config
+import glemon.shadow
 
 
 class Test(Document):
@@ -99,7 +106,7 @@ class TestLemon(unittest.TestCase):
         run(_())
 
     def test_batch(self):
-        func = lambda x: {'a': x, 'b': x + 100}
+        def func(x): return {'a': x, 'b': x + 100}
         b = Test.objects.insert(range(1024), func=func)
         a = Test.objects.count()
         self.assertEqual(a, 1024)
@@ -107,7 +114,7 @@ class TestLemon(unittest.TestCase):
 
     def test_asyncio_batch(self):
         async def _():
-            func = lambda x: {'a': x, 'b': x + 100}
+            def func(x): return {'a': x, 'b': x + 100}
             await Test.abjects.insert(range(1024), func=func)
             a = await Test.abjects.count()
             self.assertEqual(a, 1024)
@@ -122,7 +129,8 @@ class TestLemon(unittest.TestCase):
     def test_asyncio_batch2(self):
         async def _():
             sl = 1024
-            func = lambda x: {'a': x, 'b': x + 100}
+
+            def func(x): return {'a': x, 'b': x + 100}
             b = await Test.abjects.insert(range(sl), func=func)
             a = await Test.abjects.count()
             self.assertEqual(a, sl)
@@ -146,4 +154,3 @@ class TestLemon(unittest.TestCase):
         t.save()
         b = Test.objects.get(10)
         self.assertEqual(t.a, b.a)
-

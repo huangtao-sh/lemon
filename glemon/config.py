@@ -5,7 +5,7 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-07-31 20:35
 
-from orange import *
+from orange import is_installed
 from orange.config import Config
 import sys
 __config = None

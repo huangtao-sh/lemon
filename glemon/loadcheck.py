@@ -5,7 +5,8 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2016-05-20 12:26
 
-from .document import *
+from .document import Document, P
+from orange import Path
 
 
 def get(filename):
