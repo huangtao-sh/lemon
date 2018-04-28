@@ -1,5 +1,5 @@
 # from functools import *
-# from orange import *
+from orange import R
 
 
 class _P(type):
@@ -19,8 +19,6 @@ OPERATORS = {
     # update operator
     'set': '$set',
     'unset': '$unset',
-    'min': '$min',
-    'max': '$max',
     'inc': '$inc',
     'mul': '$mul',
     'currentDate': '$currentDate',

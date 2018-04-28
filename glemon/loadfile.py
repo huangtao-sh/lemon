@@ -48,6 +48,10 @@ class ImportFile(object):
     _load_header = None  # 导入数据时的表头，主要用于跳过标题行，
     _projects = None
     _collection = None
+    abjects = None
+    objects = None
+    _acollection = None
+
     # 可以是一个字段，也可以是多个字段，必须为list或
     # tuple或str
 

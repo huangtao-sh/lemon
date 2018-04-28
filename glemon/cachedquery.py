@@ -5,7 +5,7 @@
 
 '''
 
-from glemon import *
+from glemon import Document
 import json
 from importlib import import_module
 

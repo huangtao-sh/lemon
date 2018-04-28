@@ -6,10 +6,11 @@
 # 创建：2017-07-22 09:52
 
 from pymongo import MongoClient
-from orange import convert_cls_name,cachedproperty
-from .query import BaseQuery, Aggregation, AsyncioQuery,P
+from orange import convert_cls_name, cachedproperty
+from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
 from .loadfile import ImportFile
+
 
 class DocumentMeta(type):
     _db_cache = {}
@@ -111,26 +112,26 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         super().__init__(*args, **kw)
 
     @cachedproperty
-    def _acollection(cls):
+    def _acollection(self):
         if Document.__adb is None:
             from motor.motor_asyncio import AsyncIOMotorClient
             client = AsyncIOMotorClient(**config())
             Document.__adb = client.get_database()
-        return Document.__adb[convert_cls_name(cls.__name__)]
+        return Document.__adb[convert_cls_name(self.__name__)]
 
     @cachedproperty
-    def _collection(cls):
+    def _collection(self):
         if Document.__db is None:
             client = MongoClient(**config())
             Document.__db = client.get_database()
-        return Document.__db[convert_cls_name(cls.__name__)]
+        return Document.__db[convert_cls_name(self.__name__)]
 
     def values(self, *fields):
         return tuple((self.get(p, None) for p in fields))
 
     def __getattr__(self, attr):
         return self.get(attr) if attr in self._projects else \
-            super().getattr(attr)
+            super().__getattr__(attr)
 
     def __setattr__(self, name, value):
         if name in self._projects:

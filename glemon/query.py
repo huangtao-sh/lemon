@@ -5,11 +5,11 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2016-12-28 15:14
 
-from pymongo import *
-from .expr import *
-from .paginate import *
-from orange.coroutine import *
-from orange import *
+# from pymongo import *
+from .expr import P
+from .paginate import Pagination
+from orange.coroutine import wait
+from orange import ensure
 import math
 
 
@@ -420,7 +420,7 @@ class Aggregation:
 
     def unwind(self, projection):
         '''打开列表字段'''
-        if isinstance(projection, Projection):
+        if isinstance(projection, P):
             projection = projection._name
         if not projection.startswith('$'):
             projection = '$%s' % (projection)
@@ -464,6 +464,10 @@ class Aggregation:
 
     def scalar(self, *fields):
         for obj in self:
+            obj = extract_dict(obj)
+            yield [obj.get(k)for k in fields]
+        '''
+        for obj in self:
             row = []
             for field in fields:
                 if '.' in field:
@@ -474,3 +478,12 @@ class Aggregation:
                     value = obj[field]
                 row.append(value)
             yield row
+        '''
+
+
+def extract_dict(d):
+    for k in tuple(d.keys()):
+        if isinstance(d.get(k), dict):
+            for a, b in extract_dict(d.pop(k)).items()):
+                d['%s.%s' % (k, a)]=b
+    return d
