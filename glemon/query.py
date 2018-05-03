@@ -484,6 +484,6 @@ class Aggregation:
 def extract_dict(d):
     for k in tuple(d.keys()):
         if isinstance(d.get(k), dict):
-            for a, b in extract_dict(d.pop(k)).items()):
+            for a, b in extract_dict(d.pop(k)).items():
                 d['%s.%s' % (k, a)]=b
     return d
