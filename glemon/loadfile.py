@@ -131,7 +131,7 @@ class ImportFile(object):
         return cls, data
 
     @classmethod
-    def import_file(cls, filename, dupcheck=False, drop=False,
+    def import_file(cls, filename, dupcheck=False, drop=False, encoding=None,
                     method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = _read(str(filename))                   # 读取文件
@@ -142,7 +142,10 @@ class ImportFile(object):
                     getattr(c, '_load_data')(data, drop=drop, method=method,
                                              keys=keys, **kw)
         else:                        # 非Excel文件，需要先进行解码
-            data = decode(data).splitlines()
+            if encoding:
+                data = data.decode(encoding, 'ignore').splitlines()
+            else:
+                data = decode(data).splitlines()
             data = getattr(cls, proc)(data, **kw)
             if data:
                 cls._load_data(data, drop=drop, method=method, keys=keys, **kw)
@@ -163,7 +166,7 @@ class ImportFile(object):
                     cls._collection.update_one(f, {'$set': u}, upsert=upsert)
 
     @classmethod
-    async def amport_file(cls, filename, dupcheck=False, drop=False,
+    async def amport_file(cls, filename, dupcheck=False, drop=False, encoding=None,
                           method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = await _asyncio_read(str(filename))     # 读取文件
@@ -175,7 +178,10 @@ class ImportFile(object):
                     await getattr(c, '_aload_data')(data, drop=drop,
                                                     method=method, keys=keys, **kw)
         else:                        # 非Excel文件，需要先进行解码
-            data = decode(data).splitlines()
+            if encoding:
+                data = data.decode(encoding, 'ignore').splitlines()
+            else:
+                data = decode(data).splitlines()
             data = getattr(cls, proc)(data, **kw)
             if data:
                 await cls._aload_data(data, method=method, keys=keys, drop=drop, ** kw)
