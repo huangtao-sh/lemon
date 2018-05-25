@@ -130,8 +130,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         return tuple((self.get(p, None) for p in fields))
 
     def __getattr__(self, attr):
-        return self.get(attr) if attr in self._projects else \
-            super().__getattr__(attr)
+        return self.get(attr)
 
     def __setattr__(self, name, value):
         if name in self._projects:
