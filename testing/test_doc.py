@@ -25,3 +25,11 @@ class TestDoc(unittest.TestCase):
 
     def test_second(self):
         self.assertEqual(1, 1)
+
+    def test_uodate(self):
+        count = 20000
+        data = [('abc-%d' % (x), x)for x in range(count)]
+        Test1.drop()
+        run(Test1._update(data, upsert=True))
+        self.assertEqual(Test1.objects.count(), count)
+    
