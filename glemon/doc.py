@@ -69,7 +69,7 @@ class NewDocument(Document):
         kw.update(kwargs)
         filename = Path(filename)
         async with open(str(filename), 'rb')as f:
-            data = f.read()
+            data = await f.read()
         if dupcheck and not LoadFile.check(cls.__name__, filename):
             raise FileImported(filename.name)
         if filename.lsuffix.startswith('.xls'):
