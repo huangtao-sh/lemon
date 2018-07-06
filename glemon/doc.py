@@ -64,14 +64,18 @@ class NewDocument(Document):
         pass
 
     @classmethod
+    async def read_file(cls, filename):
+        async with open(str(filename), 'rb')as f:
+            return await f.read()
+
+    @classmethod
     async def load_file(cls, filename, encoding='auto', dupcheck=False, **kwargs):
         kw = cls.loadfile_kw.copy()
         kw.update(kwargs)
         filename = Path(filename)
-        async with open(str(filename), 'rb')as f:
-            data = await f.read()
         if dupcheck and not LoadFile.check(cls.__name__, filename):
             raise FileImported(filename.name)
+        data = await cls.read_file(filename)
         if filename.lsuffix.startswith('.xls'):
             book = xlrd.open_workbook(file_contents=data)
             for index, sheet in enumerate(book.sheets()):
