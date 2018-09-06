@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from orange import convert_cls_name, cachedproperty
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
-from .loadfile import ImportFile
+from .loadfile import ImportFile, FileImported
 
 
 class DocumentMeta(type):

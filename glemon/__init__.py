@@ -3,7 +3,7 @@
 # 邮件：hunto@163.com
 # 创建：2017-07-22
 
-from .document import config, P, Document
+from .document import config, P, Document, FileImported
 from .cachedquery import load_query
 from .__version__ import version as __version__
 
