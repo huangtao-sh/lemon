@@ -7,11 +7,17 @@
 
 from .document import Document, P
 from orange import Path
+import os
+
+NT = os.name == 'nt'
 
 
 def get(filename):
     file = Path(filename)
-    return str(file.resolve()), int(file.stat().st_mtime)
+    name = str(file)
+    if NT:
+        name = name.lower()
+    return name, int(file.stat().st_mtime)
 
 
 class LoadFile(Document):
