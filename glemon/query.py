@@ -242,8 +242,18 @@ class BaseQuery(object):
 
     def count(self, with_limit_and_skip=False):
         if self._modified:
-            self._count = self.cursor.count(with_limit_and_skip)
+            #self._count = self.cursor.count(with_limit_and_skip)
+            if with_limit_and_skip:
+                kw={'limit':self._limit,
+                'skip':self._skip}
+            else:
+                kw={}
+            self._count=self.collection.count_documents(self.query,**kw)
         return self._count
+
+    def __bool__(self):
+        '''判断是查询结果是否有记录'''
+        return bool(self.count())
 
     def rewind(self):
         return self.cursor.rewind()

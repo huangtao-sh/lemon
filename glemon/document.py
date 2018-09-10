@@ -45,6 +45,23 @@ class DocumentMeta(type):
         return cls._acollection.insert_many(*args, **kw)
 
 
+class Decriptor(dict):
+    format_spec = '{key}-{value}'
+
+    def __init__(self, field, *args, format=None, **kw):
+        self.field = field
+        if format:
+            self.format_spec = format
+
+    def __get__(self, obj, type):
+        key = obj.get(self.field)
+        value = self.get(key)
+        return self.format(key, value)
+
+    def format(self, key, value):
+        return self.format_spec.format(key=key, value=value)
+
+
 class Document(dict, ImportFile, metaclass=DocumentMeta):
     __db = None
     __adb = None
