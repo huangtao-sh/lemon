@@ -30,7 +30,7 @@ class Shadow(Document):           # 配置库
     def read(cls, zhonglei):
         # 根据标志的名称获取配置内容，如有密码字段则自动解密
         obj = cls.objects(_id=zhonglei).first()
-        profile = obj.profile
+        profile = obj and obj.profile
         if isinstance(profile, dict):
             profile = obj.profile.copy()
             for k, v in profile.items():

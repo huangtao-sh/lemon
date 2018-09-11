@@ -29,7 +29,7 @@ class TestShadow(unittest.TestCase):
         Shadow.write('shadow_test', a)
         self.assertDictEqual(a, Shadow.read('shadow_test'))
         Shadow.write('shadow_test', None)
-        self.assertDictEqual({}, Shadow.read('shadow_test'))
+        self.assertEqual(None, Shadow.read('shadow_test'))
 
 
 class TestLemon(unittest.TestCase):
