@@ -35,7 +35,7 @@ class Shadow(Document):           # 配置库
             profile = obj.profile.copy()
             for k, v in profile.items():
                 if chkpwd(k):
-                    profile[k] = decrypt(profile[k])
+                    profile[k] = decrypt(v)
         return profile
 
     @classmethod
