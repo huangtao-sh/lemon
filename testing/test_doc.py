@@ -16,7 +16,7 @@ class Test1(Document):
 
 class TestDoc(unittest.TestCase):
     def test_insert(self):
-        count = 20000
+        count = 200
         data = [('abc-%d' % (x), x)for x in range(count)]
         run(Test1._insert(data, drop=True, projects=('a', 'b')))
         self.assertEqual(Test1.objects.count(), count)
@@ -27,9 +27,8 @@ class TestDoc(unittest.TestCase):
         self.assertEqual(1, 1)
 
     def test_uodate(self):
-        count = 20000
+        count = 200
         data = [('abc-%d' % (x), x)for x in range(count)]
         Test1.drop()
         run(Test1._update(data, upsert=True))
         self.assertEqual(Test1.objects.count(), count)
-    

@@ -4,6 +4,7 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2017-07-22 09:52
+# 修订：2018-09-11 新增 Descriptor 类
 
 from pymongo import MongoClient
 from orange import convert_cls_name, cachedproperty
@@ -45,18 +46,22 @@ class DocumentMeta(type):
         return cls._acollection.insert_many(*args, **kw)
 
 
-class Decriptor(dict):
+class Descriptor(dict):
     format_spec = '{key}-{value}'
 
-    def __init__(self, field, *args, format=None, **kw):
+    def __init__(self, field, *args, format_spec=None, **kw):
         self.field = field
-        if format:
-            self.format_spec = format
+        if format_spec:
+            self.format_spec = format_spec
+        self.update(*args, **kw)
 
     def __get__(self, obj, type):
-        key = obj.get(self.field)
-        value = self.get(key)
-        return self.format(key, value)
+        if obj:
+            key = obj.get(self.field)
+            value = self.get(key)
+            return self.format(key, value)
+        else:
+            return self
 
     def format(self, key, value):
         return self.format_spec.format(key=key, value=value)
@@ -144,7 +149,9 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         return Document.__db[convert_cls_name(self.__name__)]
 
     def values(self, *fields):
-        return tuple((self.get(p, None) for p in fields))
+        projects = self._projects
+        return tuple(self.get(p, None) if p in projects else getattr(self, p)
+                     for p in fields)
 
     def __getattr__(self, attr):
         return self.get(attr)

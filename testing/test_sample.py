@@ -10,13 +10,15 @@ import glemon.cachedquery
 import glemon.config
 import glemon.shadow
 import glemon.expr
+from glemon.document import Descriptor
 
 
 class Test(Document):
     _projects = 'a', 'b'
     _load_mapper = {'a': 'hello', 'b': 'world'}
+    b_dtl = Descriptor('b', {'0': 'hello', '1': 'world'})
 
-    #_textfmt='{self.a}\t{self.b}'
+    # _textfmt='{self.a}\t{self.b}'
 
 
 class TestShadow(unittest.TestCase):
@@ -155,3 +157,9 @@ class TestLemon(unittest.TestCase):
         t.save()
         b = Test.objects.get(10)
         self.assertEqual(t.a, b.a)
+
+    def test_descriptor(self):
+        Test.drop()
+        Test(a='0', b='0').save()
+        obj = Test.objects.first()
+        self.assertEqual(obj.b_dtl, '0-hello')
