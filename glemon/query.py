@@ -9,7 +9,7 @@
 from .expr import P
 from .paginate import Pagination
 from orange.coroutine import wait
-from orange import ensure
+from orange import ensure, tprint
 import math
 
 
@@ -227,13 +227,16 @@ class BaseQuery(object):
         return obj and self.document(from_query=True, **obj)
 
     def scalar(self, *fields):
-        #self.project(*fields)
+        # self.project(*fields)
         if len(fields) == 1:
             def extract(d): return d.values(*fields)[0]
         else:
             def extract(d): return d.values(*fields)
         for d in self:
             yield extract(d)
+
+    def show(self, *fields, format_spec={}, sep=' '):
+        tprint(self.scalar(*fields), format_spec=format_spec, sep=sep)
 
     values_list = scalar
 
@@ -244,11 +247,11 @@ class BaseQuery(object):
         if self._modified:
             #self._count = self.cursor.count(with_limit_and_skip)
             if with_limit_and_skip:
-                kw={'limit':self._limit,
-                'skip':self._skip}
+                kw = {'limit': self._limit,
+                      'skip': self._skip}
             else:
-                kw={}
-            self._count=self.collection.count_documents(self.query,**kw)
+                kw = {}
+            self._count = self.collection.count_documents(self.query, **kw)
         return self._count
 
     def __bool__(self):
@@ -495,5 +498,5 @@ def extract_dict(d):
     for k in tuple(d.keys()):
         if isinstance(d.get(k), dict):
             for a, b in extract_dict(d.pop(k)).items():
-                d['%s.%s' % (k, a)]=b
+                d['%s.%s' % (k, a)] = b
     return d

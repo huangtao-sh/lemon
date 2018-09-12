@@ -163,3 +163,5 @@ class TestLemon(unittest.TestCase):
         Test(a='0', b='0').save()
         obj = Test.objects.first()
         self.assertEqual(obj.b_dtl, '0-hello')
+        Test(a='1', b='1').save()
+        Test.objects.show('a', 'b_dtl', 'a', format_spec={1: '12'}, sep='  ')
