@@ -164,4 +164,15 @@ class TestLemon(unittest.TestCase):
         obj = Test.objects.first()
         self.assertEqual(obj.b_dtl, '0-hello')
         Test(a='1', b='1').save()
-        Test.objects.show('a', 'b_dtl', 'a', format_spec={1: '12'}, sep='  ')
+
+    def test_dupcheck(self):
+        from glemon.loadcheck import dup_check, FileImported, LoadFile
+        path = Path('test.txt')
+        path.lines = ['a', 'b']
+        try:
+            LoadFile.drop()
+            checker = dup_check(path, 'test')
+            checker.done()
+            self.assertRaises(FileImported, dup_check, path, 'test')
+        finally:
+            path.unlink()

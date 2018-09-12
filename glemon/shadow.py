@@ -12,7 +12,8 @@ from .document import Document
 PASSWORDNAMES = {'passwd', 'password'}   # 定义密码字段名称
 
 
-def chkpwd(x): return x.lower() in PASSWORDNAMES
+def chkpwd(x):
+    return x.lower() in PASSWORDNAMES
 
 
 class Shadow(Document):           # 配置库

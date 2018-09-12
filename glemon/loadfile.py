@@ -11,6 +11,16 @@ from orange.coroutine import wait
 import xlrd
 
 
+class FileImported(Exception):
+
+    def __init__(self, filename):
+        super().__init__()
+        self.filename = filename
+
+    def __str__(self):
+        return '文件 %s 已导入数据库，跳过' % (self.filename)
+
+
 def _read(filename):
     with open(filename, 'rb') as f:
         return f.read()
@@ -20,16 +30,6 @@ async def _asyncio_read(filename):
     import aiofiles
     async with aiofiles.open(filename, 'rb')as f:
         return await f.read()
-
-
-class FileImported(Exception):
-
-    def __init__(self, filename):
-        super().__init__()
-        self.filename = filename
-
-    def __str__(self):
-        return '文件 %s 已导入数据库，跳过' % (self.filename)
 
 
 FILETYPES = {
