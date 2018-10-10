@@ -33,7 +33,7 @@ async def _asyncio_read(filename):
 
 
 FILETYPES = {
-    '.del': '_proc_del',
+    '.del': '_proc_csv',
     '.xlsx': '_proc_xls',
     '.xls': '_proc_xls',
     '.xlsm': '_proc_xls',
@@ -106,18 +106,10 @@ class ImportFile(object):
         LoadFile.save(cls.__name__, filename)
 
     @classmethod
-    def _proc_del(cls, data, **kw):
-        rows = []
-        for row in data:
-            if row:
-                row = [x.strip() if isinstance(x, str)
-                       else x for x in eval(row)]
-            rows.append(row)
-        return rows
-
-    @classmethod
     def _proc_csv(cls, data, **kw):
-        return [[x.strip() for x in row.split(',')] for row in data if row]
+        import csv
+        return tuple(filter(lambda x: x if isinstance(x, list)else [x],
+                            csv.reader(data)))
 
     @classmethod
     def _proc_xls(cls, data, **kw):
