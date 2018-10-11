@@ -1,7 +1,7 @@
 import unittest
 from glemon import Document, P
 from orange.coroutine import run
-from orange import Path
+from orange import Path, tempfile
 import glemon.paginate
 import glemon.loadfile
 import glemon.loadcheck
@@ -49,6 +49,22 @@ class TestLemon(unittest.TestCase):
         a = Path('testing/test.xlsx')
         run(Test.amport_file(a))
         self.assertEqual(8, Test.objects.count())
+
+    def testImport2(self):
+        class TestHello(Document):
+            _projects = ('_id',)
+        text = '''"1234"
+"4567"
+"5678"
+"test"'''
+        TestHello.drop()
+        with tempfile(data=text, suffix='.csv') as f:
+            self.assertEqual(f.suffix, '.csv')
+            TestHello.import_file(f)
+        a = TestHello.objects(_id="1234").first()
+        self.assertEqual(a._id, "1234")
+        self.assertEqual(TestHello.objects.count(), 4)
+        TestHello.drop()
 
     def test_asave(self):
         async def _():

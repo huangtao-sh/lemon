@@ -108,8 +108,8 @@ class ImportFile(object):
     @classmethod
     def _proc_csv(cls, data, **kw):
         import csv
-        return tuple(filter(lambda x: x if isinstance(x, list)else [x],
-                            csv.reader(data)))
+        data = tuple(csv.reader(data))
+        return data
 
     @classmethod
     def _proc_xls(cls, data, **kw):
