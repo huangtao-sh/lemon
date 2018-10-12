@@ -34,9 +34,16 @@ class TestDoc(unittest.TestCase):
         self.assertEqual(Test1.objects.count(), count)
 
     def test_bulkwrite(self):
+        from pymongo import ReplaceOne
         count = 10
         row = [(x, f'name{x}') for x in range(count)]
-        for method in ('insert','replace','update'):
+        for method in ('insert', 'replace', 'update'):
             Test1.bulk_write(row, method=method)
             self.assertEqual(Test1.objects.count(), count)
             Test1.drop()
+        Test1(a='abc',b='def',c='32434').save()
+        b=ReplaceOne({'a':'abc','b':'def'},{'c':'hello kitty'})
+        Test1._collection.bulk_write([b])
+        for r in Test1.objects:
+            print(r.a,r.b,r.c)
+        Test1.drop()

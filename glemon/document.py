@@ -67,7 +67,7 @@ class DocumentMeta(type):
         if new_data:
             if drop:
                 cls._collection.drop()
-            cls._collection.bulk_write(new_data, ordered=ordered)
+            return cls._collection.bulk_write(new_data, ordered=ordered)
 
 
 class Descriptor(dict):
