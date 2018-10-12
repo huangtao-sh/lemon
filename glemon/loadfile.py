@@ -9,6 +9,7 @@
 from orange import Path, decode, split
 from orange.coroutine import wait
 import xlrd
+from pymongo import InsertOne, ReplaceOne, UpdateOne
 
 
 class FileImported(Exception):
@@ -193,4 +194,4 @@ class ImportFile(object):
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'
-                await wait([proc(f, u, upsert=upsert) for f, u in data])
+                await wait([proc(f, u, upsert=upsert) for f, u in data])    

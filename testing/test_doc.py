@@ -32,3 +32,11 @@ class TestDoc(unittest.TestCase):
         Test1.drop()
         run(Test1._update(data, upsert=True))
         self.assertEqual(Test1.objects.count(), count)
+
+    def test_bulkwrite(self):
+        count = 10
+        row = [(x, f'name{x}') for x in range(count)]
+        for method in ('insert','replace','update'):
+            Test1.bulk_write(row, method=method)
+            self.assertEqual(Test1.objects.count(), count)
+            Test1.drop()

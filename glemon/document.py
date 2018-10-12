@@ -6,7 +6,7 @@
 # 创建：2017-07-22 09:52
 # 修订：2018-09-11 新增 Descriptor 类
 
-from pymongo import MongoClient
+from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
 from orange import convert_cls_name, cachedproperty
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
@@ -44,6 +44,30 @@ class DocumentMeta(type):
 
     def ansert_many(cls, *args, **kw):
         return cls._acollection.insert_many(*args, **kw)
+
+    def bulk_write(cls, data, fields=None, keys=None, method='insert',
+                   drop=True, ordered=True):
+        fields = fields or cls._projects
+        if method == 'insert':
+            new_data = [InsertOne(dict(zip(fields, row)))for row in data]
+        else:
+            def _UpdateOne(filter, update, **kw):
+                return UpdateOne(filter, {'$set': update}, **kw)
+            keys = keys or ('_id',)
+            Method = {'replace': ReplaceOne, 'update': _UpdateOne}.get(method)
+            new_data = []
+            for row in data:
+                filter, update = {}, {}
+                for k, v in zip(fields, row):
+                    if k in keys:
+                        filter[k] = v
+                    else:
+                        update[k] = v
+                new_data.append(Method(filter, update, upsert=True))
+        if new_data:
+            if drop:
+                cls._collection.drop()
+            cls._collection.bulk_write(new_data, ordered=ordered)
 
 
 class Descriptor(dict):
