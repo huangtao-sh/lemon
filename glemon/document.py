@@ -53,8 +53,12 @@ class DocumentMeta(type):
         else:
             def _UpdateOne(filter, update, **kw):
                 return UpdateOne(filter, {'$set': update}, **kw)
+
+            def _ReplaceOne(fileter, update, **kw):
+                update.update(filter)
+                return ReplaceOne(filter, update, **kw)
             keys = keys or ('_id',)
-            Method = {'replace': ReplaceOne, 'update': _UpdateOne}.get(method)
+            Method = {'replace': _ReplaceOne, 'update': _UpdateOne}.get(method)
             new_data = []
             for row in data:
                 filter, update = {}, {}

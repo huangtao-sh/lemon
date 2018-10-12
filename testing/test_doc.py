@@ -41,9 +41,9 @@ class TestDoc(unittest.TestCase):
             Test1.bulk_write(row, method=method)
             self.assertEqual(Test1.objects.count(), count)
             Test1.drop()
-        Test1(a='abc',b='def',c='32434').save()
-        b=ReplaceOne({'a':'abc','b':'def'},{'c':'hello kitty'})
-        Test1._collection.bulk_write([b])
+        Test1(a='abc', b='def', c='32434').save()
+        Test1.bulk_write([('abc', 'def', 'hello kitty')], fields=('a', 'b', 'c'),
+                         keys=('a', 'b'),method='update')
         for r in Test1.objects:
-            print(r.a,r.b,r.c)
+            print(r.a, r.b, r.c)
         Test1.drop()
