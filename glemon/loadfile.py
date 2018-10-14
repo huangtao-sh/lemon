@@ -177,6 +177,7 @@ class ImportFile(object):
     def import_file(cls, filename, dupcheck=True, drop=True, encoding=None,
                     method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
+        print(dupcheck, filename)
         data = _read(str(filename))                   # 读取文件
         proc = FILETYPES.get(Path(filename).lsuffix)  # 获取处理文件器
         if proc == '_proc_xls':
@@ -184,6 +185,8 @@ class ImportFile(object):
                 if c and data:
                     getattr(c, '_load_data')(data, drop=drop, method=method,
                                              keys=keys, **kw)
+            dupcheck and cls._importsave(filename)
+            print('导入数据文件%s成功' % (filename))
         else:                        # 非Excel文件，需要先进行解码
             if encoding:
                 data = data.decode(encoding, 'ignore').splitlines()
