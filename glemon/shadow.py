@@ -30,7 +30,7 @@ class Shadow(Document):           # 配置库
     @classmethod
     def read(cls, zhonglei):
         # 根据标志的名称获取配置内容，如有密码字段则自动解密
-        obj = cls.objects(_id=zhonglei).first()
+        obj = cls.objects.filter(_id=zhonglei).first()
         profile = obj and obj.profile
         if isinstance(profile, dict):
             profile = obj.profile.copy()
@@ -48,7 +48,18 @@ class Shadow(Document):           # 配置库
                 for k, v in profile.items():
                     if chkpwd(k):
                         profile[k] = encrypt(v)
-            cls.objects(_id=zhonglei).upsert_one(
+            cls.objects.filter(_id=zhonglei).upsert_one(
                 profile=profile)
         else:  # 如profile 为空，则删除相应的配置
-            cls.objects(_id=zhonglei).delete()
+            cls.objects.filter(_id=zhonglei).delete()
+
+
+class _Shadow():
+    def __getattr__(self, name):
+        return Shadow.read(name)
+
+    def __setattr__(self, name, value):
+        return Shadow.write(name, value)
+
+
+shadow = _Shadow()

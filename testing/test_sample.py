@@ -124,7 +124,7 @@ class TestLemon(unittest.TestCase):
             sl = 1024
 
             def func(x): return {'a': x, 'b': x + 100}
-            b = await Test.abjects.insert(range(sl), func=func)
+            await Test.abjects.insert(range(sl), func=func)
             a = await Test.abjects.count()
             self.assertEqual(a, sl)
         run(_())
@@ -166,3 +166,8 @@ class TestLemon(unittest.TestCase):
             self.assertRaises(FileImported, dup_check, path, 'test')
         finally:
             path.unlink()
+
+    def testShadow(self):
+        from glemon.shadow import shadow
+        shadow.version = '2018-09'
+        print(shadow.version)

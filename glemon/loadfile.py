@@ -174,7 +174,7 @@ class ImportFile(object):
         return cls, data
 
     @classmethod
-    def import_file(cls, filename, dupcheck=False, drop=False, encoding=None,
+    def import_file(cls, filename, dupcheck=True, drop=True, encoding=None,
                     method='insert', keys='_id', **kw):
         dupcheck and cls._dupcheck(filename)          # 防重复文件检查
         data = _read(str(filename))                   # 读取文件
