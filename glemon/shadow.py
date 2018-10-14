@@ -62,4 +62,4 @@ class _Shadow():
         return Shadow.write(name, value)
 
 
-shadow = _Shadow()
+profile = _Shadow()

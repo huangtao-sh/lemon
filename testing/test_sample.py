@@ -168,6 +168,8 @@ class TestLemon(unittest.TestCase):
             path.unlink()
 
     def testShadow(self):
-        from glemon.shadow import shadow
-        shadow.version = '2018-09'
-        print(shadow.version)
+        from glemon.shadow import profile, Shadow
+        ver = '2018-09'
+        profile.test_version = ver
+        ver = Shadow.read('test_version')
+        self.assertEqual(ver, profile.test_version)

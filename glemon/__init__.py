@@ -6,7 +6,7 @@
 from .document import config, P, Document, FileImported, Descriptor
 from .cachedquery import load_query
 from .__version__ import version as __version__
-from .shadow import Shadow, shadow
+from .shadow import Shadow, profile
 
 shadow = Shadow
 
