@@ -45,33 +45,37 @@ class DocumentMeta(type):
     def ansert_many(cls, *args, **kw):
         return cls._acollection.insert_many(*args, **kw)
 
-    def bulk_write(cls, data, fields=None, keys=None, method='insert',
+    def bulk_write(cls, data,
+                   mapper=None, fields=None, keys=None,
+                   method='insert',
                    drop=True, ordered=True):
-        fields = fields or cls._projects
+        if not mapper:
+            fields = fields or cls._projects
+            if isinstance(fields, str):
+                fields = fields.split(',')
+            mapper = {k: i for i, k in enumerate(fields) if k}
         if method == 'insert':
-            new_data = [InsertOne(dict(zip(fields, row)))for row in data]
+            data = [InsertOne({k: row[v]
+                               for k, v in mapper.items()})for row in data]
         else:
             def _UpdateOne(filter, update, **kw):
                 return UpdateOne(filter, {'$set': update}, **kw)
-
-            def _ReplaceOne(fileter, update, **kw):
-                update.update(filter)
-                return ReplaceOne(filter, update, **kw)
             keys = keys or ('_id',)
-            Method = {'replace': _ReplaceOne, 'update': _UpdateOne}.get(method)
-            new_data = []
-            for row in data:
-                filter, update = {}, {}
-                for k, v in zip(fields, row):
-                    if k in keys:
-                        filter[k] = v
-                    else:
-                        update[k] = v
-                new_data.append(Method(filter, update, upsert=True))
-        if new_data:
+            if isinstance(keys, str):
+                keys = keys.split(',')
+            if method == 'replace':
+                keymapper = {k: mapper[k]for k in keys}
+            else:
+                keymapper = {k: mapper.pop(k)for k in keys}
+            Method = {'replace': ReplaceOne, 'update': _UpdateOne}.get(method)
+            data = [Method({k: row[v] for k, v in keymapper.items()},
+                           {k: row[v] for k, v in mapper.items()},
+                           upsert=True)
+                    for row in data]
+        if data:
             if drop:
                 cls._collection.drop()
-            return cls._collection.bulk_write(new_data, ordered=ordered)
+            return cls._collection.bulk_write(data, ordered=ordered)
 
 
 class Descriptor(dict):

@@ -34,16 +34,40 @@ class TestDoc(unittest.TestCase):
         self.assertEqual(Test1.objects.count(), count)
 
     def test_bulkwrite(self):
-        from pymongo import ReplaceOne
         count = 10
         row = [(x, f'name{x}') for x in range(count)]
         for method in ('insert', 'replace', 'update'):
             Test1.bulk_write(row, method=method)
             self.assertEqual(Test1.objects.count(), count)
             Test1.drop()
-        Test1(a='abc', b='def', c='32434').save()
-        Test1.bulk_write([('abc', 'def', 'hello kitty')], fields=('a', 'b', 'c'),
-                         keys=('a', 'b'),method='update')
-        for r in Test1.objects:
-            print(r.a, r.b, r.c)
-        Test1.drop()
+
+    def test_bulkwrite2(self):
+        class Test3(Document):
+            _projects = '_id', 'name', 'age'
+        data = [['a', 'b', 'c', 'd']]
+        for method in ('insert', 'replace', 'update'):
+            Test3.bulk_write(data, method=method, keys=('_id', 'name'))
+            self.assertEqual(Test3.objects.count(), 1)
+            obj = Test3.objects.first()
+            self.assertEqual(obj.id, 'a')
+            self.assertEqual(obj.name, 'b')
+            self.assertEqual(obj.age, 'c')
+        Test3.drop()
+        for method in ('insert', 'replace', 'update'):
+            Test3.bulk_write(data, method=method, keys=('_id', 'name'),
+                             fields='_id,,name,age')
+            self.assertEqual(Test3.objects.count(), 1)
+            obj = Test3.objects.first()
+            self.assertEqual(obj.id, 'a')
+            self.assertEqual(obj.name, 'c')
+            self.assertEqual(obj.age, 'd')
+        Test3.drop()
+        for method in ('insert', 'replace', 'update'):
+            Test3.bulk_write(data, method=method, keys=('_id',),
+                             mapper={'_id':0,'name':2,'age':3})
+            self.assertEqual(Test3.objects.count(), 1)
+            obj = Test3.objects.first()
+            self.assertEqual(obj.id, 'a')
+            self.assertEqual(obj.name, 'c')
+            self.assertEqual(obj.age, 'd')
+        Test3.drop()

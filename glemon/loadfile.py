@@ -10,6 +10,8 @@ from orange import Path, decode, split
 from orange.coroutine import wait
 import xlrd
 from pymongo import InsertOne, ReplaceOne, UpdateOne
+from collections import ChainMap
+from functools import partial
 
 
 class FileImported(Exception):
@@ -43,6 +45,15 @@ FILETYPES = {
 }
 
 
+def subdict(d, *keys):
+    result = {}
+    for key in keys:
+        val = d.pop(key, None)
+        if val:
+            result['key'] = val
+    return result
+
+
 class ImportFile(object):
     '''导入文件类，可以做为基类'''
     _load_mapper = None  # 导入数据时的表头，主要用于跳过标题行
@@ -52,9 +63,48 @@ class ImportFile(object):
     abjects = None
     objects = None
     _acollection = None
+    load_options = {}
 
     # 可以是一个字段，也可以是多个字段，必须为list或
     # tuple或str
+
+    @classmethod
+    def loadfile(cls, filename: 'str or Path', options: dict = None):
+        from .loadcheck import dup_check
+        options = dict(ChainMap(options or {}, cls.load_options))  # 合并参数
+        dupcheck = options.pop('dupcheck', True)       # 取出重复导入检查，默认为真
+        file = Path(filename)                          # 导入文件
+        if dupcheck:
+            checker = dup_check(file, cls.__name__)    # 重复检查
+        csvkw = subdict(options, 'encoding', 'dialet', 'errors')  # 取出csv参数
+        if file.lsuffix in ('*.csv', '*.del') and csvkw:
+            data = file.iter_csv(**csvkw)             # 获取CSV文件数据
+        elif file.lsuffix == '.txt':
+            data = file.lines
+        else:
+            data = file                               # 其他文件数据
+        data = cls.procdata(data, options)            # 处理数据
+        if data:
+            result = cls.bulk_write(data, **options)  # 写入数据库
+        if dupcheck:
+            checker.done()                            # 重复检查的更新文件时间
+        return result                                 # 返回结果
+
+    @classmethod
+    def procdata(cls, data, options):
+        converter = options.pop('converter', {})
+        return filter(partial(cls.procrow, converter=converter), data)
+
+    @classmethod
+    def procrow(cls, row, converter=None):
+        if converter:
+            for func, columns in converter.items():
+                if isinstance(columns, (tuple, list)):
+                    for column in columns:
+                        row[column] = func(row[column])
+                elif isinstance(columns, int):
+                    row[columns] = func(row[columns])
+        return row
 
     @classmethod
     def _proc_data(cls, data, fields=None, mapper=None, header=None, keys='_id', method='insert', **kw):
@@ -194,4 +244,4 @@ class ImportFile(object):
             else:
                 proc = cls._acollection.update
                 upsert = method == 'upsert'
-                await wait([proc(f, u, upsert=upsert) for f, u in data])    
+                await wait([proc(f, u, upsert=upsert) for f, u in data])
