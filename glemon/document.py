@@ -5,6 +5,8 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2017-07-22 09:52
 # 修订：2018-09-11 新增 Descriptor 类
+# 修改：2018-10-15 22:03 增加 show, profile 等功能
+
 
 from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
 from orange import convert_cls_name, cachedproperty, wlen, tprint
@@ -125,7 +127,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             if self.id:
                 d = self.copy()
                 d.pop('_id')
-                self.__class__.objects(P.id == self.id).upsert_one(**d)
+                type(self).objects.filter(_id=self.id).upsert_one(**d)
             else:
                 self._collection.insert_one(self)
             self._modified = False
@@ -136,7 +138,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             if self.id:
                 d = self.copy()
                 d.pop('_id')
-                await self.__class__.abjects(P.id == self.id).upsert_one(**d)
+                await type(self).abjects.filter(_id=self.id).upsert_one(**d)
             else:
                 await self._collection.insert_one(self)
             self._modified = False
