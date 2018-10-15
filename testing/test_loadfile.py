@@ -36,6 +36,7 @@ class TestLoad2(unittest.TestCase):
         obj = dict(obj)
         obj.pop('_id')
         self.assertDictEqual(obj, {'no': '001', 'name': '张三', 'age': 23})
+        
 
 
 class TestLoadFile(Document):

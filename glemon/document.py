@@ -7,7 +7,7 @@
 # 修订：2018-09-11 新增 Descriptor 类
 
 from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
-from orange import convert_cls_name, cachedproperty
+from orange import convert_cls_name, cachedproperty, wlen, tprint
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
 from .loadfile import ImportFile, FileImported, enlist
@@ -105,6 +105,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     _projects = ()
     _textfmt = ''    # 文本格式
     _htmlfmt = ''    # 超文本格式
+    _profile = {}    # profile 属性时使用
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
@@ -197,3 +198,12 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     def update(self, *args, **kw):
         self._modified = True
         self.update(*args, **kw)
+
+    def show(self, profile=None, format_spec=None, sep='    '):
+        profile = profile or self._profile
+        if not format_spec:
+            length = max(map(wlen, profile.keys()))
+            format_spec = {0: str(length)}
+        data = [(name, getattr(self, field))
+                for name, field in profile.items()]
+        tprint(data, format_spec=format_spec, sep=sep)
