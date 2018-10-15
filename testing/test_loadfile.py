@@ -1,6 +1,41 @@
 from glemon import Document, P, FileImported
 import unittest
 from orange import Path
+from glemon.document import enlist
+
+
+class TestLoadDoc(Document):
+    _projects = enlist('_id,name,age')
+    load_options = {
+        'header': {
+            '编号': 'no',
+            '姓名': ('name', str.strip),
+            '年龄': ('age', int)
+        }
+    }
+
+
+doctext = '''
+序号,编号,姓名,年龄
+1,001,"张三    ",23
+2,002,"王五    ",27
+'''
+
+
+class TestLoad2(unittest.TestCase):
+    def setUp(self):
+        TestLoadDoc.drop()
+
+    tearDown = setUp
+
+    def testLoad(self):
+        with Path.tempfile(doctext, suffix='.csv')as f:
+            r = TestLoadDoc.loadfile(f)
+            self.assertEqual(r.inserted_count, 2)
+        obj = TestLoadDoc.objects.filter(no='001').first()
+        obj = dict(obj)
+        obj.pop('_id')
+        self.assertDictEqual(obj, {'no': '001', 'name': '张三', 'age': 23})
 
 
 class TestLoadFile(Document):
@@ -12,7 +47,6 @@ class TestLoadFile(Document):
             str.strip: 2,
         }
     }
-
 
 
 text = '''1,"huangtao","黄涛  ",35
@@ -93,3 +127,10 @@ class TestLoad(unittest.TestCase):
             self.assertEqual(r.upserted_count, 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
+
+    def testEnlist(self):
+        fields1 = '_id,name,age'
+        fields2 = fields1.split(',')
+        fields3 = tuple(fields2)
+        for fields in (fields1, fields2, fields3):
+            self.assertListEqual(fields2, list(enlist(fields)))

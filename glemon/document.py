@@ -10,7 +10,7 @@ from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
 from orange import convert_cls_name, cachedproperty
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
-from .loadfile import ImportFile, FileImported
+from .loadfile import ImportFile, FileImported, enlist
 
 
 class DocumentMeta(type):

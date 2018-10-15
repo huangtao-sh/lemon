@@ -4,14 +4,20 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2017-11-13
+# 修改：2018-10-15 21:41 增加 loadfile
 
 
-from orange import Path, decode, split
+from orange import Path, decode, split, info
 from orange.coroutine import wait
 import xlrd
 from pymongo import InsertOne, ReplaceOne, UpdateOne
 from collections import ChainMap
 from functools import partial
+from collections import defaultdict
+
+
+def enlist(fields):
+    return fields.split(',') if isinstance(fields, str) else fields
 
 
 class FileImported(Exception):
@@ -92,7 +98,36 @@ class ImportFile(object):
 
     @classmethod
     def procdata(cls, data, options):
-        converter = options.pop('converter', {})
+        header = options.pop('header', None)
+        if header:
+            data = tuple(data)
+            mapper, converter = {}, defaultdict(lambda: [])
+            _header = set(header.keys())
+            info(_header)
+            for i, d in enumerate(data):
+                if not(_header - set(d)):
+                    data = data[i+1:]
+                    info('data:')
+                    info(data)
+                    break
+            else:
+                return
+            for k, v in header.items():
+                idx = d.index(k)
+                if isinstance(v, (tuple, list))and len(v) == 2:
+                    field, conv = v
+                    mapper[field] = idx
+                    converter[conv].append(idx)
+                elif isinstance(v, str):
+                    mapper[v] = idx
+            options['mapper'] = mapper
+            info('mapper:')
+            info(mapper)
+            info('converter:')
+            converter = dict(converter)
+            info(converter)
+        else:
+            converter = options.pop('converter', {})
         return filter(partial(cls.procrow, converter=converter), data)
 
     @classmethod
