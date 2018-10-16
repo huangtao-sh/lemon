@@ -101,14 +101,11 @@ class ImportFile(object):
         header = options.pop('header', None)
         if header:
             data = tuple(data)
-            mapper, converter = {}, defaultdict(lambda: [])
+            mapper, converter = {}, []
             _header = set(header.keys())
-            info(_header)
             for i, d in enumerate(data):
                 if not(_header - set(d)):
                     data = data[i+1:]
-                    info('data:')
-                    info(data)
                     break
             else:
                 return
@@ -117,28 +114,29 @@ class ImportFile(object):
                 if isinstance(v, (tuple, list))and len(v) == 2:
                     field, conv = v
                     mapper[field] = idx
-                    converter[conv].append(idx)
+                    converter.append((idx, conv))
                 elif isinstance(v, str):
                     mapper[v] = idx
             options['mapper'] = mapper
-            info('mapper:')
-            info(mapper)
-            info('converter:')
-            converter = dict(converter)
-            info(converter)
         else:
-            converter = options.pop('converter', {})
+            _converter = options.pop('converter', {})
+            if _converter:
+                mapper = options.pop('mapper', None)or\
+                    dict((k, i)for i, k in enumerate(
+                        enlist(options.pop('fields', None)or cls._projects)))
+                info(mapper)
+                converter = []
+                for fields, v in _converter.items():
+                    for f in enlist(fields):
+                        if f in mapper:
+                            converter.append((mapper[f], v))
+                options['mapper'] = mapper
         return filter(partial(cls.procrow, converter=converter), data)
 
     @classmethod
-    def procrow(cls, row, converter=None):
-        if converter:
-            for func, columns in converter.items():
-                if isinstance(columns, (tuple, list)):
-                    for column in columns:
-                        row[column] = func(row[column])
-                elif isinstance(columns, int):
-                    row[columns] = func(row[columns])
+    def procrow(cls, row, converter=()):
+        for index, func in converter:
+            row[index] = func(row[index])
         return row
 
     @classmethod
@@ -176,8 +174,8 @@ class ImportFile(object):
             key_mapper = {key: val_mapper.pop(key) for key in keys}
 
             def _extract(row):
-                return {k: row[v] for k, v in key_mapper.items()},\
-                    {k: row[v] for k, v in val_mapper.items()},
+                return {k: row[v] for k, v in key_mapper.items()},
+                {k: row[v] for k, v in val_mapper.items()},
             return (_extract(row)for row in data)
 
     @classmethod

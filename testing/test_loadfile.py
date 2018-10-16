@@ -36,7 +36,6 @@ class TestLoad2(unittest.TestCase):
         obj = dict(obj)
         obj.pop('_id')
         self.assertDictEqual(obj, {'no': '001', 'name': '张三', 'age': 23})
-        
 
 
 class TestLoadFile(Document):
@@ -44,8 +43,8 @@ class TestLoadFile(Document):
     load_options = {
         'dupcheck': False,
         'converter': {
-            int: 0,
-            str.strip: 2,
+            'a': int,
+            'b,c,d': str.strip,
         }
     }
 
@@ -118,14 +117,13 @@ class TestLoad(unittest.TestCase):
         with Path.tempfile(text, suffix='.csv')as f:
             options = {'method': 'replace', 'keys': 'a'}
             r = TestLoadFile.loadfile(f, options)
-            self.assertEqual(r.upserted_count, 3)
+            self.assertEqual(r.modified_count, 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
 
         with Path.tempfile(text, suffix='.csv')as f:
             options = {'method': 'update', 'keys': 'a'}
             r = TestLoadFile.loadfile(f, options)
-            self.assertEqual(r.upserted_count, 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
 
