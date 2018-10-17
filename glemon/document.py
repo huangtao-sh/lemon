@@ -75,7 +75,7 @@ class DocumentMeta(type):
                 return _add(
                     dict((x, row[y]) for x, y in keymapper),
                     dict((x, row[y]) for x, y in fields)
-                    )
+                )
         if data:
             if method == 'insert' and drop:
                 cls._collection.drop()
@@ -85,18 +85,18 @@ class DocumentMeta(type):
 
 
 class Descriptor(dict):
-    format_spec='{key}-{value}'
+    format_spec = '{key}-{value}'
 
     def __init__(self, field, *args, format_spec=None, **kw):
-        self.field=field
+        self.field = field
         if format_spec:
-            self.format_spec=format_spec
+            self.format_spec = format_spec
         self.update(*args, **kw)
 
     def __get__(self, obj, type):
         if obj:
-            key=obj.get(self.field)
-            value=self.get(key)
+            key = obj.get(self.field)
+            value = self.get(key)
             return self.format(key, value)
         else:
             return self
@@ -106,12 +106,12 @@ class Descriptor(dict):
 
 
 class Document(dict, ImportFile, metaclass=DocumentMeta):
-    __db=None
-    __adb=None
-    _projects=()
-    _textfmt=''    # 文本格式
-    _htmlfmt=''    # 超文本格式
-    _profile={}    # profile 属性时使用
+    __db = None
+    __adb = None
+    _projects = ()
+    _textfmt = ''    # 文本格式
+    _htmlfmt = ''    # 超文本格式
+    _profile = {}    # profile 属性时使用
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
@@ -124,32 +124,32 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @id.setter
     def id(self, value):
-        self['_id']=value
+        self['_id'] = value
 
     def save(self):
         if self._modified:
             if self.id:
-                d=self.copy()
+                d = self.copy()
                 d.pop('_id')
                 type(self).objects.filter(_id=self.id).upsert_one(**d)
             else:
                 self._collection.insert_one(self)
-            self._modified=False
+            self._modified = False
         return self
 
     async def asave(self):
         if self._modified:
             if self.id:
-                d=self.copy()
+                d = self.copy()
                 d.pop('_id')
                 await type(self).abjects.filter(_id=self.id).upsert_one(**d)
             else:
                 await self._collection.insert_one(self)
-            self._modified=False
+            self._modified = False
         return self
 
     def __setitem__(self, *args, **kw):
-        self._modified=True
+        self._modified = True
         return super().__setitem__(*args, **kw)
 
     @property
@@ -167,28 +167,28 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         return self._htmlfmt.format(self=self)
 
     def __init__(self, *args, id=None, from_query=False, **kw):
-        self._modified=not from_query
+        self._modified = not from_query
         if id:
-            kw['_id']=id
+            kw['_id'] = id
         super().__init__(*args, **kw)
 
     @cachedproperty
     def _acollection(self):
         if Document.__adb is None:
             from motor.motor_asyncio import AsyncIOMotorClient
-            client=AsyncIOMotorClient(**config())
-            Document.__adb=client.get_database()
+            client = AsyncIOMotorClient(**config())
+            Document.__adb = client.get_database()
         return Document.__adb[convert_cls_name(self.__name__)]
 
     @cachedproperty
     def _collection(self):
         if Document.__db is None:
-            client=MongoClient(**config())
-            Document.__db=client.get_database()
+            client = MongoClient(**config())
+            Document.__db = client.get_database()
         return Document.__db[convert_cls_name(self.__name__)]
 
     def values(self, *fields):
-        projects=self._projects
+        projects = self._projects
         return tuple(self.get(p, None) if p in projects else getattr(self, p)
                      for p in fields)
 
@@ -197,19 +197,23 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     def __setattr__(self, name, value):
         if name in self._projects:
-            self[name]=value
+            self[name] = value
         else:
             super().__setattr__(name, value)
 
     def update(self, *args, **kw):
-        self._modified=True
+        self._modified = True
         self.update(*args, **kw)
 
     def show(self, profile=None, format_spec=None, sep='    '):
-        profile=profile or self._profile
+        profile = profile or self._profile
         if not format_spec:
-            length=max(map(wlen, profile.keys()))
-            format_spec={0: str(length)}
-        data=[(name, getattr(self, field))
+            length = max(map(wlen, profile.keys()))
+            format_spec = {0: str(length)}
+        data = [(name, getattr(self, field))
                 for name, field in profile.items()]
         tprint(data, format_spec=format_spec, sep=sep)
+
+    @classmethod
+    def find(cls, *args, **kw):
+        return cls.objects.filer(*args, **kw)
