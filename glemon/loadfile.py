@@ -123,7 +123,7 @@ class ImportFile(object):
             if _converter:
                 mapper = options.pop('mapper', None)or\
                     dict((k, i)for i, k in enumerate(
-                        enlist(options.pop('fields', None)or cls._projects)))
+                        enlist(options.pop('fields', None)or cls._projects))if k)
                 info(mapper)
                 converter = []
                 for fields, v in _converter.items():
