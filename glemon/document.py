@@ -216,4 +216,4 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @classmethod
     def find(cls, *args, **kw):
-        return cls.objects.filer(*args, **kw)
+        return cls.objects.filter(*args, **kw)
