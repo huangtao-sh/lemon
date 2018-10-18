@@ -131,6 +131,8 @@ class ImportFile(object):
                         if f in mapper:
                             converter.append((mapper[f], v))
                 options['mapper'] = mapper
+            else:
+                converter=()
         return filter(partial(cls.procrow, converter=converter), data)
 
     @classmethod
