@@ -176,8 +176,8 @@ class ImportFile(object):
             key_mapper = {key: val_mapper.pop(key) for key in keys}
 
             def _extract(row):
-                return {k: row[v] for k, v in key_mapper.items()},
-                {k: row[v] for k, v in val_mapper.items()}
+                return ({k: row[v] for k, v in key_mapper.items()},
+                        {k: row[v] for k, v in val_mapper.items()})
             return (_extract(row)for row in data)
 
     @classmethod
