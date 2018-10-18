@@ -132,7 +132,7 @@ class ImportFile(object):
                             converter.append((mapper[f], v))
                 options['mapper'] = mapper
             else:
-                converter=()
+                converter = ()
         return filter(partial(cls.procrow, converter=converter), data)
 
     @classmethod
@@ -177,7 +177,7 @@ class ImportFile(object):
 
             def _extract(row):
                 return {k: row[v] for k, v in key_mapper.items()},
-                {k: row[v] for k, v in val_mapper.items()},
+                {k: row[v] for k, v in val_mapper.items()}
             return (_extract(row)for row in data)
 
     @classmethod
