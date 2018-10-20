@@ -106,8 +106,8 @@ class Descriptor(dict):
 
 
 class Document(dict, ImportFile, metaclass=DocumentMeta):
-    __db = None
-    __adb = None
+    __db: Collection = None
+    __adb: Collection = None
     _projects = ()
     _textfmt = ''    # 文本格式
     _htmlfmt = ''    # 超文本格式
