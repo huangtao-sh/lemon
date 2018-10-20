@@ -86,7 +86,7 @@ class ImportFile(object):
         if file.lsuffix in ('*.csv', '*.del') and csvkw:
             data = file.iter_csv(**csvkw)             # 获取CSV文件数据
         elif file.lsuffix == '.txt':
-            data = file.lines
+            data = cls.proctxt(file)
         else:
             data = file                               # 其他文件数据
         data = cls.procdata(data, options)            # 处理数据
@@ -95,6 +95,10 @@ class ImportFile(object):
         if dupcheck:
             checker.done()                            # 重复检查的更新文件时间
         return result                                 # 返回结果
+
+    @classmethod
+    def proctxt(cls, file):
+        return file.lines
 
     @classmethod
     def procdata(cls, data, options):
@@ -120,19 +124,17 @@ class ImportFile(object):
             options['mapper'] = mapper
         else:
             _converter = options.pop('converter', {})
+            converter = []
             if _converter:
                 mapper = options.pop('mapper', None)or\
                     dict((k, i)for i, k in enumerate(
                         enlist(options.pop('fields', None)or cls._projects))if k)
                 info(mapper)
-                converter = []
                 for fields, v in _converter.items():
                     for f in enlist(fields):
                         if f in mapper:
                             converter.append((mapper[f], v))
                 options['mapper'] = mapper
-            else:
-                converter = ()
         return filter(partial(cls.procrow, converter=converter), data)
 
     @classmethod
