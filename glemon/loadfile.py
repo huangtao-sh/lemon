@@ -56,7 +56,7 @@ def subdict(d, *keys):
     for key in keys:
         val = d.pop(key, None)
         if val:
-            result['key'] = val
+            result[key] = val
     return result
 
 
@@ -83,7 +83,7 @@ class ImportFile(object):
         if dupcheck:
             checker = dup_check(file, cls.__name__)    # 重复检查
         csvkw = subdict(options, 'encoding', 'dialet', 'errors')  # 取出csv参数
-        if file.lsuffix in ('*.csv', '*.del') and csvkw:
+        if file.lsuffix in  ('.csv', '.del') and csvkw:
             data = file.iter_csv(**csvkw)             # 获取CSV文件数据
         elif file.lsuffix == '.txt':
             data = cls.proctxt(file)
