@@ -83,7 +83,7 @@ class ImportFile(object):
         if dupcheck:
             checker = dup_check(file, cls.__name__)    # 重复检查
         csvkw = subdict(options, 'encoding', 'dialet', 'errors')  # 取出csv参数
-        if file.lsuffix in  ('.csv', '.del') and csvkw:
+        if file.lsuffix in ('.csv', '.del') and csvkw:
             data = file.iter_csv(**csvkw)             # 获取CSV文件数据
         elif file.lsuffix == '.txt':
             data = cls.proctxt(file)
@@ -102,6 +102,7 @@ class ImportFile(object):
 
     @classmethod
     def procdata(cls, data, options):
+        data = tuple(data)
         header = options.pop('header', None)
         if header:
             data = tuple(data)
@@ -135,7 +136,7 @@ class ImportFile(object):
                         if f in mapper:
                             converter.append((mapper[f], v))
                 options['mapper'] = mapper
-        return filter(partial(cls.procrow, converter=converter), data)
+        return filter(None, map(partial(cls.procrow, converter=converter), data))
 
     @classmethod
     def procrow(cls, row, converter=()):
