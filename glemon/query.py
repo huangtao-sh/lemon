@@ -227,7 +227,9 @@ class BaseQuery(object):
         return obj and self.document(from_query=True, **obj)
 
     def scalar(self, *fields):
-        # self.project(*fields)
+        from .loadfile import enlist
+        if len(fields) == 1:
+            fields = enlist(fields)
         if len(fields) == 1:
             def extract(d): return d.values(*fields)[0]
         else:
