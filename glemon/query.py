@@ -229,7 +229,7 @@ class BaseQuery(object):
     def scalar(self, *fields):
         from .loadfile import enlist
         if len(fields) == 1:
-            fields = enlist(fields)
+            fields = enlist(fields[0])
         if len(fields) == 1:
             def extract(d): return d.values(*fields)[0]
         else:
