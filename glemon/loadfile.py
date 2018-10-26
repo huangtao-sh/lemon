@@ -92,6 +92,8 @@ class ImportFile(object):
         data = cls.procdata(data, options)            # 处理数据
         if data:
             result = cls.bulk_write(data, **options)  # 写入数据库
+        else:
+            result = None
         if dupcheck:
             checker.done()                            # 重复检查的更新文件时间
         return result                                 # 返回结果
