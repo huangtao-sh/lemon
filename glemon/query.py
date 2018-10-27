@@ -240,6 +240,11 @@ class BaseQuery(object):
     def show(self, *fields, format_spec={}, sep=' '):
         tprint(self.scalar(*fields), format_spec=format_spec, sep=sep)
 
+    def show_detail(self, sep='\n'):
+        for obj in self:
+            obj.show()
+            print('\n')
+
     values_list = scalar
 
     def distinct(self, *args):
