@@ -9,7 +9,6 @@ from .document import Document, P
 from orange import generator, split, Path, decode
 from orange.coroutine import wait
 from .loadcheck import LoadFile
-from aiofiles import open
 import xlrd
 
 
@@ -65,6 +64,7 @@ class NewDocument(Document):
 
     @classmethod
     async def read_file(cls, filename):
+        from aiofiles import open
         async with open(str(filename), 'rb')as f:
             return await f.read()
 
