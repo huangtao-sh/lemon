@@ -11,12 +11,12 @@ import sys
 __config = None
 
 
-def config(is_dev=None, db=None):
+def config(is_dev=None, db=None, **kw):
     global __config
     if not __config:
         if is_dev is None:
-            is_dev = not('wsgi' in sys.argv[0] or is_installed(sys.argv[0])
-                         ) or 'test' in sys.argv[0]
+            is_dev = not ('wsgi' in sys.argv[0] or is_installed(
+                sys.argv[0])) or 'test' in sys.argv[0]
         _config = Config(project='mongo', is_dev=is_dev)
         _config.load_config()
         config = _config.get('database') or {}
@@ -26,4 +26,5 @@ def config(is_dev=None, db=None):
         if _config.is_dev:
             config['host'] = 'mongodb://localhost/test'
         __config = config
+        __config.update(kw)
     return __config
