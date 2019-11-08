@@ -3,7 +3,6 @@ from orange import R
 
 
 class _P(type):
-
     def __getitem__(self, name):
         if name == 'id':
             name = '_id'
@@ -53,7 +52,6 @@ OPERATORS = {
 
 
 class P(metaclass=_P):
-
     def __init__(self, name, neg=False):
         if name.startswith('-'):
             name, neg = name[1:], True
@@ -101,7 +99,7 @@ class P(metaclass=_P):
         return self._name, -1 if self._neg else 1
 
     def regex(self, *args):
-        return _Operator(self, None)((R/args)._regex)
+        return _Operator(self, None)((R / args)._regex)
 
     contains = regex
 
@@ -120,9 +118,11 @@ class P(metaclass=_P):
     def iendswith(self, val):
         return self.regex('%s$' % (val), 'i')
 
+    def exists(self, val=True):
+        return _Operator(self, '$exists')(val)
+
 
 class Combin():
-
     def __init__(self, *items, op='$and'):
         self.op = op
         self.items = list(items)
@@ -152,7 +152,6 @@ class Combin():
 
 
 class _Operator():
-
     def __init__(self, project, operator=None, kw=None):
         self.project = project._name
         self.operator = operator
