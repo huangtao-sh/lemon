@@ -7,9 +7,8 @@
 # 修订：2018-09-11 新增 Descriptor 类
 # 修改：2018-10-15 22:03 增加 show, profile 等功能
 
-
 from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
-from orange import convert_cls_name, cachedproperty, wlen, tprint
+from orange import convert_cls_name, cachedproperty, wlen, tprint, split
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
 from .loadfile import ImportFile, FileImported, enlist
@@ -47,41 +46,46 @@ class DocumentMeta(type):
     def ansert_many(cls, *args, **kw):
         return cls._acollection.insert_many(*args, **kw)
 
-    def bulk_write(cls, data,
-                   mapper=None, fields=None, keys=None,
+    def bulk_write(cls,
+                   data,
+                   mapper=None,
+                   fields=None,
+                   keys=None,
                    method='insert',
-                   drop=True, ordered=True):
+                   drop=True,
+                   ordered=True):
         if not mapper:
             fields = enlist(fields or cls._projects)
             mapper = {k: i for i, k in enumerate(fields) if k}
         if method == 'insert':
             fields = mapper.items()
 
-            def add(row): return InsertOne(
-                dict((x, row[y]) for x, y in fields))
+            def add(row):
+                return InsertOne(dict((x, row[y]) for x, y in fields))
         else:
             keys = enlist(keys or '_id')
             if method == 'replace':
-                keymapper = tuple((k, mapper[k])for k in keys)
+                keymapper = tuple((k, mapper[k]) for k in keys)
 
-                def _add(x, y): return ReplaceOne(x, y, upsert=True)
+                def _add(x, y):
+                    return ReplaceOne(x, y, upsert=True)
             else:
-                keymapper = tuple((k, mapper.pop(k))for k in keys)
+                keymapper = tuple((k, mapper.pop(k)) for k in keys)
 
-                def _add(x, y): return UpdateOne(x, {'$set': y}, upsert=True)
+                def _add(x, y):
+                    return UpdateOne(x, {'$set': y}, upsert=True)
+
             fields = mapper.items()
 
             def add(row):
-                return _add(
-                    dict((x, row[y]) for x, y in keymapper),
-                    dict((x, row[y]) for x, y in fields)
-                )
+                return _add(dict((x, row[y]) for x, y in keymapper),
+                            dict((x, row[y]) for x, y in fields))
+
         if data:
             if method == 'insert' and drop:
                 cls._collection.drop()
-            return cls._collection.bulk_write(
-                list(map(add, data)),
-                ordered=ordered)
+            return cls._collection.bulk_write(list(map(add, data)),
+                                              ordered=ordered)
 
 
 class Descriptor(dict):
@@ -109,9 +113,29 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     __db = None
     __adb = None
     _projects = ()
-    _textfmt = ''    # 文本格式
-    _htmlfmt = ''    # 超文本格式
-    _profile = {}    # profile 属性时使用
+    _textfmt = ''  # 文本格式
+    _htmlfmt = ''  # 超文本格式
+    _profile = {}  # profile 属性时使用
+
+    @classmethod
+    def load(cls,
+             data,
+             mapper=None,
+             fields=None,
+             keys=None,
+             method='insert',
+             drop=True,
+             ordered=True,
+             batch=100000):
+        if method == 'insert' and drop:
+            cls.drop()
+        for data in split(data, batch):
+            cls.bulk_write(data,
+                           mapper,
+                           fields=fields,
+                           keys=keys,
+                           drop=False,
+                           ordered=ordered)
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
@@ -189,8 +213,9 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     def values(self, *fields):
         projects = self._projects
-        return tuple(self.get(p, None) if p in projects else getattr(self, p)
-                     for p in fields)
+        return tuple(
+            self.get(p, None) if p in projects else getattr(self, p)
+            for p in fields)
 
     def __getattr__(self, attr):
         return self.get(attr)

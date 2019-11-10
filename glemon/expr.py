@@ -33,6 +33,7 @@ OPERATORS = {
 
     # query operator
     'in_': '$in',
+    '_in': '$in',
     'nin': '$nin',
     'mod': '$mod',
     'all': '$all',
