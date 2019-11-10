@@ -126,14 +126,15 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
              method='insert',
              drop=True,
              ordered=True,
-             batch=100000):
+             size=100000):
         if method == 'insert' and drop:
             cls.drop()
-        for data in split(data, batch):
+        for data in split(data, size):
             cls.bulk_write(data,
-                           mapper,
+                           mapper=mapper,
                            fields=fields,
                            keys=keys,
+                           method=method,
                            drop=False,
                            ordered=ordered)
 

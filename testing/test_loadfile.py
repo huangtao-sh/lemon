@@ -29,7 +29,7 @@ class TestLoad2(unittest.TestCase):
     tearDown = setUp
 
     def testLoad(self):
-        with Path.tempfile(doctext, suffix='.csv')as f:
+        with Path.tempfile(doctext, suffix='.csv') as f:
             r = TestLoadDoc.loadfile(f)
             self.assertEqual(r.inserted_count, 2)
         obj = TestLoadDoc.objects.filter(no='001').first()
@@ -59,11 +59,9 @@ class TestLoad(unittest.TestCase):
         TestLoadFile.drop()
 
     def testEncoding(self):
-        options = {
-            'drop': True
-        }
+        options = {'drop': True}
         for code in ('utf8', 'gbk', 'cp936', 'gb2312'):
-            with Path.tempfile(text.encode(code), suffix='.csv')as f:
+            with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
                 self.assertEqual(r.inserted_count, 3)
             self.assertEqual(TestLoadFile.objects.count(), 3)
@@ -71,12 +69,10 @@ class TestLoad(unittest.TestCase):
             self.assertEqual(r.c, '黄涛')
 
     def testEncoding2(self):
-        options = {
-            'drop': True
-        }
+        options = {'drop': True}
         for code in ('utf8', 'gbk', 'cp936', 'gb2312'):
             options['encoding'] = code
-            with Path.tempfile(text.encode(code), suffix='.csv')as f:
+            with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
                 self.assertEqual(r.inserted_count, 3)
             self.assertEqual(TestLoadFile.objects.count(), 3)
@@ -84,10 +80,8 @@ class TestLoad(unittest.TestCase):
             self.assertEqual(r.c, '黄涛')
 
     def testDupCheck(self):
-        options = {
-            'dupcheck': True
-        }
-        with Path.tempfile(text, suffix='.del')as f:
+        options = {'dupcheck': True}
+        with Path.tempfile(text, suffix='.del') as f:
             r = TestLoadFile.loadfile(f, options)
             self.assertEqual(r.inserted_count, 3)
             with self.assertRaises(FileImported):
@@ -97,7 +91,7 @@ class TestLoad(unittest.TestCase):
         options = {
             'fields': 'a,b,,c',
         }
-        with Path.tempfile(text, suffix='.del')as f:
+        with Path.tempfile(text, suffix='.del') as f:
             r = TestLoadFile.loadfile(f, options)
             self.assertEqual(r.inserted_count, 3)
         self.assertEqual(TestLoadFile.objects.count(), 3)
@@ -107,21 +101,21 @@ class TestLoad(unittest.TestCase):
         self.assertEqual(r.d, None)
 
     def testInsert(self):
-        with Path.tempfile(text, suffix='.csv')as f:
+        with Path.tempfile(text, suffix='.csv') as f:
             r = TestLoadFile.loadfile(f)
             self.assertEqual(r.inserted_count, 3)
         self.assertEqual(TestLoadFile.objects.count(), 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
 
-        with Path.tempfile(text, suffix='.csv')as f:
+        with Path.tempfile(text, suffix='.csv') as f:
             options = {'method': 'replace', 'keys': 'a'}
             r = TestLoadFile.loadfile(f, options)
             self.assertEqual(r.modified_count, 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
 
-        with Path.tempfile(text, suffix='.csv')as f:
+        with Path.tempfile(text, suffix='.csv') as f:
             options = {'method': 'update', 'keys': 'a'}
             r = TestLoadFile.loadfile(f, options)
         r = TestLoadFile.objects.filter(a=1).first()
@@ -133,3 +127,27 @@ class TestLoad(unittest.TestCase):
         fields3 = tuple(fields2)
         for fields in (fields1, fields2, fields3):
             self.assertListEqual(fields2, list(enlist(fields)))
+
+    def testLoad(self):
+        def data():
+            for r in range(200000):
+                yield (r, f'abc{r}', 25)
+
+        TestLoadDoc.load(data(), drop=True, method='insert')
+        self.assertEqual(TestLoadDoc.objects.count(), 200000)
+        TestLoadDoc.objects.filter(P._id == 0).update_one(name='abc')
+        self.assertEqual(TestLoadDoc.objects.get(0).name, 'abc')
+        count = 30
+
+        def data2():
+            for r in range(count):
+                yield (r, f'abcd{r}', 27)
+
+        TestLoadDoc.load(data2(),
+                         drop=True,
+                         keys='_id',
+                         fields='_id,name,age',
+                         method='replace',
+                         size=20)
+        self.assertEqual(
+            TestLoadDoc.objects.filter(P.age == 27).count(), count)
