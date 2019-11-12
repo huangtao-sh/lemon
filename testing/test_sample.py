@@ -1,6 +1,6 @@
 import unittest
 from glemon import Document, P
-from orange.coroutine import run
+from asyncio import get_event_loop
 from orange import Path, tempfile
 import glemon.paginate
 import glemon.loadfile
@@ -12,6 +12,12 @@ import glemon.shadow
 import glemon.expr
 from glemon.document import Descriptor
 
+loop = get_event_loop()
+
+
+def run(coro):
+    loop.run_until_complete(coro)
+
 
 class Test(Document):
     _projects = 'a', 'b'
@@ -22,7 +28,6 @@ class Test(Document):
 
 
 class TestShadow(unittest.TestCase):
-
     def test_shadow(self):
         from glemon.shadow import Shadow
         a = {'user': 'zhangsan', 'passwd': '123456', 'abc': 'work'}
@@ -33,14 +38,13 @@ class TestShadow(unittest.TestCase):
 
 
 class TestLemon(unittest.TestCase):
-
     def setUp(self):
         Test.drop()
 
     def tearDown(self):
         Test.drop()
 
-    def _test_asave(self):
+    def test_asave(self):
         async def _():
             a = Test(id=10, a=20, b=30)
             await a.asave()
@@ -52,9 +56,10 @@ class TestLemon(unittest.TestCase):
             self.assertFalse(t._modified)
             a = await Test.abjects.first()
             self.assertEqual(a.b, t.b)
+
         run(_())
 
-    def _test_insert_one(self):
+    def test_insert_one(self):
         a = {'a': 1, 'b': 2}
         d = {'a': 1, 'b': 2}
         Test.insert_one(d)
@@ -63,40 +68,41 @@ class TestLemon(unittest.TestCase):
         Test.insert_one(a)
         self.assertListEqual(Test.objects.distinct('a'), [1])
         self.assertEqual(Test.objects.count(), 2)
-        Test.objects(P.a == 3).upsert(b=4)
-        b = Test.objects(P.a == 3).first()
+        Test.objects.filter(P.a == 3).upsert(b=4)
+        b = Test.objects.filter(P.a == 3).first()
         self.assertEqual(b.b, 4)
         Test.objects.update(P.b.inc(10))
-        b = Test.objects(P.a == 3).first()
+        b = Test.objects.filter(P.a == 3).first()
         self.assertEqual(b.b, 14)
 
-        Test.objects(P.a == 3).delete()
-        a = Test.objects(P.a == 3).first()
+        Test.objects.filter(P.a == 3).delete()
+        a = Test.objects.filter(P.a == 3).first()
         self.assertIsNone(a)
-        Test.objects(P.a == 1).delete_one()
-        self.assertEqual(Test.objects(P.a == 1).count(), 1)
+        Test.objects.filter(P.a == 1).delete_one()
+        self.assertEqual(Test.objects.filter(P.a == 1).count(), 1)
 
-    def _test_asyncio(self):
+    def test_asyncio(self):
         async def _():
             a = {'a': 1, 'b': 2}
             await Test.ansert_one(a)
             b = await Test.abjects.first()
             self.assertDictEqual(a, b)
-            await Test.abjects(P.a == 1).delete_one()
+            await Test.abjects.filter(P.a == 1).delete_one()
             self.assertEqual(await Test.abjects.count(), 0)
 
-            await Test.abjects(P.a == 1).upsert(b=10)
-            a = await Test.abjects(P.a == 1).first()
+            await Test.abjects.filter(P.a == 1).upsert(b=10)
+            a = await Test.abjects.filter(P.a == 1).first()
             self.assertEqual(a.b, 10)
-            await Test.abjects(P.a == 1).update(P.b.inc(10))
-            a = await Test.abjects(P.a == 1).first()
+            await Test.abjects.filter(P.a == 1).update(P.b.inc(10))
+            a = await Test.abjects.filter(P.a == 1).first()
             self.assertEqual(a.b, 20)
             d = {'a': 15, 'b': 20}
             await Test.abjects.insert([d])
-            a = await Test.abjects(P.a == 15).first()
+            a = await Test.abjects.filter(P.a == 15).first()
             self.assertEqual(a.b, 20)
 
         run(_())
+
     '''
     def test_batch(self):
         Test.drop()
@@ -107,9 +113,11 @@ class TestLemon(unittest.TestCase):
         self.assertEqual(a, b)
     '''
 
-    def _test_asyncio_batch(self):
+    def test_asyncio_batch(self):
         async def _():
-            def func(x): return {'a': x, 'b': x + 100}
+            def func(x):
+                return {'a': x, 'b': x + 100}
+
             await Test.abjects.insert(range(1024), func=func)
             a = await Test.abjects.count()
             self.assertEqual(a, 1024)
@@ -119,19 +127,23 @@ class TestLemon(unittest.TestCase):
                 d.append(x)
             self.assertSetEqual(set(s), set(range(1024)))
             self.assertSetEqual(set(d), set(range(1024)))
+
         run(_())
 
-    def _test_asyncio_batch2(self):
+    def test_asyncio_batch2(self):
         async def _():
             sl = 1024
 
-            def func(x): return {'a': x, 'b': x + 100}
+            def func(x):
+                return {'a': x, 'b': x + 100}
+
             await Test.abjects.insert(range(sl), func=func)
             a = await Test.abjects.count()
             self.assertEqual(a, sl)
+
         run(_())
 
-    def _test_save(self):
+    def test_save(self):
         t = Test(a=10, b=100)
         self.assertEqual(t._modified, True)
         t.save()
@@ -149,14 +161,14 @@ class TestLemon(unittest.TestCase):
         t.save()
         b = Test.objects.get(10)
         self.assertEqual(t.a, b.a)
-    '''
+
     def test_descriptor(self):
         Test.drop()
         Test(a='0', b='0').save()
         obj = Test.objects.first()
         self.assertEqual(obj.b_dtl, '0-hello')
         Test(a='1', b='1').save()
-    '''
+
     def test_dupcheck(self):
         from glemon.loadcheck import dup_check, FileImported, LoadFile
         path = Path('test.txt')
