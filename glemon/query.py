@@ -447,6 +447,16 @@ class Aggregation:
         self.pipeline.append({'$unwind': projection})
         return self
 
+    def lookup(self, local_field, _from, foreign_field, _as):
+        self.pipeline.append(
+            {'$lookup': {
+                'localField': local_field,
+                'from': _from,
+                'forgignField': foreign_field,
+                'as': _as
+            }})
+        return self
+
     def group(self, *args):
         '''聚合字段'''
         _id = {}
