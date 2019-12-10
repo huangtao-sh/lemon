@@ -124,9 +124,9 @@ class P(metaclass=_P):
 
 
 class Combin():
-    def __init__(self, *items, op='$and'):
+    def __init__(self, *items, op='$and', invert=False):
         self.op = op
-        self.items = list(items)
+        self.items = items
         self.invert = False
 
     def to_query(self):
@@ -135,9 +135,8 @@ class Combin():
         return {self.op: [item.to_query() for item in self.items]}
 
     def _oper(self, other, op):
-        if self.op == op:
-            self.items.append(other)
-            return self
+        if self.op == op and not self.invert:
+            return Combin(*self.items, other, op=op)
         else:
             return Combin(self, other, op=op)
 
