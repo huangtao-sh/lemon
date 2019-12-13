@@ -4,13 +4,15 @@
 # License:GPL
 # Email:huangtao.sh@icloud.com
 # 创建：2016-12-28 15:14
+# 修订：2019-12-13 17:11 新增 export 功能
 
 # from pymongo import *
 from .expr import P
 from .paginate import Pagination
 from orange.coroutine import wait
-from orange import ensure, tprint
+from orange import ensure, tprint, Path
 import math
+from orange.xlsx import Book
 
 
 def abort(*args, **kwargs):
@@ -56,8 +58,11 @@ class BaseQuery(object):
     def items(self):
         return self
 
-    def iter_pages(self, left_edge=2, left_current=2,
-                   right_current=5, right_edge=2):
+    def iter_pages(self,
+                   left_edge=2,
+                   left_current=2,
+                   right_current=5,
+                   right_edge=2):
         """Iterates over the page numbers in the pagination.  The four
         parameters control the thresholds how many numbers should be produced
         from the sides.  Skipped page numbers are represented as `None`.
@@ -117,17 +122,22 @@ class BaseQuery(object):
         return str(obj._id)
 
     def dumps(self):
-        d = {name: self.__dict__.get(name) for name in
-             ('_skip', '_projection', '_sort', '_limit', '_per_page', '_pages')}
+        d = {
+            name: self.__dict__.get(name)
+            for name in ('_skip', '_projection', '_sort', '_limit',
+                         '_per_page', '_pages')
+        }
         d['_filter'] = self.query
         return d
 
     @property
     def query(self):
         '''返回查询条件'''
-        if (not self._filter)and self._query:
-            _query = [query.to_query() if hasattr(query, 'to_query') else
-                      query for query in self._query]
+        if (not self._filter) and self._query:
+            _query = [
+                query.to_query() if hasattr(query, 'to_query') else query
+                for query in self._query
+            ]
             if len(_query) == 1:
                 query = _query[0]
             elif len(_query) > 1:
@@ -139,8 +149,10 @@ class BaseQuery(object):
 
     def first(self):
         '''符合条件的第一条记录'''
-        obj = self.collection.find_one(self.query, skip=self._skip,
-                                       projection=self._projection, sort=self._sort)
+        obj = self.collection.find_one(self.query,
+                                       skip=self._skip,
+                                       projection=self._projection,
+                                       sort=self._sort)
         return obj and self.document(from_query=True, **obj)
 
     def first_or_404(self):
@@ -231,9 +243,14 @@ class BaseQuery(object):
         if len(fields) == 1:
             fields = enlist(fields[0])
         if len(fields) == 1:
-            def extract(d): return d.values(*fields)[0]
+
+            def extract(d):
+                return d.values(*fields)[0]
         else:
-            def extract(d): return d.values(*fields)
+
+            def extract(d):
+                return d.values(*fields)
+
         for d in self:
             yield extract(d)
 
@@ -254,8 +271,7 @@ class BaseQuery(object):
         if self._modified:
             #self._count = self.cursor.count(with_limit_and_skip)
             if with_limit_and_skip:
-                kw = {'limit': self._limit,
-                      'skip': self._skip}
+                kw = {'limit': self._limit, 'skip': self._skip}
             else:
                 kw = {}
             self._count = self.collection.count_documents(self.query, **kw)
@@ -273,7 +289,7 @@ class BaseQuery(object):
         pages, m = divmod(total, per_page)
         if m:
             pages += 1
-        ensure((page > 0)and(page <= pages), '页码超限！')
+        ensure((page > 0) and (page <= pages), '页码超限！')
         skip, limit = self._skip, self._limit  # 保存当前状态
         self._skip = self._skip + (page - 1) * per_page
         self._limit = per_page
@@ -285,7 +301,7 @@ class BaseQuery(object):
     def update(self, *args, upsert=False, multi=True, **kw):
         func = self.collection.update_many if multi else \
             self.collection.update_one
-        args = [arg.to_update()for arg in args]
+        args = [arg.to_update() for arg in args]
         for k, v in kw.items():
             if k.startswith('$'):
                 args.append({k: v})
@@ -318,16 +334,17 @@ class BaseQuery(object):
         return self.update(*args, **kw)
 
     def _insert(self, objs, func=None, **kw):
-        return self.collection.insert_many(map(func, objs)
-                                           if func else objs, **kw)
+        return self.collection.insert_many(
+            map(func, objs) if func else objs, **kw)
 
     def insert(self, objs, func=None, **kw):
-        return sum([len(self._insert(data, func=func, **kw).inserted_ids)
-                    for data in _split(objs)])
+        return sum([
+            len(self._insert(data, func=func, **kw).inserted_ids)
+            for data in _split(objs)
+        ])
 
 
 class AsyncioQuery(BaseQuery):
-
     async def paginate(self, page=1, per_page=0):
         if per_page > 1:
             self._per_page = per_page
@@ -344,8 +361,10 @@ class AsyncioQuery(BaseQuery):
         return self.document._acollection
 
     async def first(self):
-        obj = await self.collection.find_one(self.query, skip=self._skip,
-                                             projection=self._projection, sort=self._sort)
+        obj = await self.collection.find_one(self.query,
+                                             skip=self._skip,
+                                             projection=self._projection,
+                                             sort=self._sort)
         return obj and self.document(from_query=True, **obj)
 
     async def __aiter__(self):
@@ -364,9 +383,14 @@ class AsyncioQuery(BaseQuery):
     async def scalar(self, *fields):
         self.project(*fields)
         if len(fields) == 1:
-            def extract(d): return d.values(*fields)[0]
+
+            def extract(d):
+                return d.values(*fields)[0]
         else:
-            def extract(d): return d.values(*fields)
+
+            def extract(d):
+                return d.values(*fields)
+
         async for i in self:
             yield extract(i)
 
@@ -375,7 +399,7 @@ class AsyncioQuery(BaseQuery):
         pages, m = divmod(total, per_page)
         if m:
             pages += 1
-        ensure((page > 0)and(page <= pages), '页码超限！')
+        ensure((page > 0) and (page <= pages), '页码超限！')
         skip, limit = self._skip, self._limit  # 保存当前状态
         self._skip = self._skip + (page - 1) * per_page
         self._limit = per_page
@@ -387,12 +411,11 @@ class AsyncioQuery(BaseQuery):
         return Pagination(self, page, per_page, total, items)
 
     def insert(self, objs, func=None, **kw):
-        return wait([self._insert(data, func=func, **kw) for
-                     data in _split(objs)])
+        return wait(
+            [self._insert(data, func=func, **kw) for data in _split(objs)])
 
 
 class Aggregation:
-
     def __init__(self, document, pipeline=None, **kw):
         self.collection = document._collection
         self.pipeline = pipeline or []
@@ -413,8 +436,7 @@ class Aggregation:
             abort(404)
         pipeline = self.pipeline.copy()
         pipeline.append({'$skip': (page - 1) * per_page})
-        items = [i for i in
-                 self.collection.aggregate(pipeline, **self.kw)]
+        items = [i for i in self.collection.aggregate(pipeline, **self.kw)]
         total = (page - 1) * per_page + len(items)
         items = items[:per_page]
         if not items and page != 1 and error_out:
@@ -448,13 +470,14 @@ class Aggregation:
         return self
 
     def lookup(self, local_field, _from, foreign_field, _as):
-        self.pipeline.append(
-            {'$lookup': {
+        self.pipeline.append({
+            '$lookup': {
                 'localField': local_field,
                 'from': _from,
                 'forgignField': foreign_field,
                 'as': _as
-            }})
+            }
+        })
         return self
 
     def group(self, *args):
@@ -487,15 +510,27 @@ class Aggregation:
         self.pipeline.append({'$limit': num})
         return self
 
-    def export(self, filename, sheetname='sheet1', range_="A1", columns=None,
-               mapper=None):
+    def export(self,
+               path: 'Path or Workbook',
+               sheet='sheet1',
+               projects=None,
+               range_="A1",
+               columns=None,
+               force=False):
         '''导出数据'''
-        pass
+        if isinstance(path, Book):
+            path.add_table(range_,
+                           sheet=sheet,
+                           columns=columns,
+                           data=self.scalar(projects))
+        else:
+            with Path(path).write_xlsx(force=force) as book:
+                self.export(book, sheet, projects, range_, columns)
 
     def scalar(self, *fields):
         for obj in self:
             obj = extract_dict(obj)
-            yield [obj.get(k)for k in fields]
+            yield [obj.get(k) for k in fields]
         '''
         for obj in self:
             row = []
