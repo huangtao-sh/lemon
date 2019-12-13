@@ -11,7 +11,7 @@ import sys
 __config = None
 
 
-def config(is_dev=None, db=None, **kw):
+def config(is_dev=None, **kw):
     global __config
     if not __config:
         if is_dev is None:
@@ -26,5 +26,6 @@ def config(is_dev=None, db=None, **kw):
         if _config.is_dev:
             config['host'] = 'mongodb://localhost/test'
         __config = config
+    if kw:
         __config.update(kw)
     return __config
