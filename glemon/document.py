@@ -127,6 +127,8 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
              drop=True,
              ordered=True,
              size=100000):
+        if method not in ('insert', 'update', 'replace'):
+            raise Exception('Error: method must be insert,update or replace')
         if method == 'insert' and drop:
             cls.drop()
         for data in split(data, size):
