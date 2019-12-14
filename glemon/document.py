@@ -205,14 +205,14 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             from motor.motor_asyncio import AsyncIOMotorClient
             client = AsyncIOMotorClient(**config())
             Document.__adb = client.get_database()
-        return Document.__adb[convert_cls_name(self.__name__)]
+        return Document.__adb.get_collection(convert_cls_name(self.__name__))
 
     @cachedproperty
     def _collection(self):
         if Document.__db is None:
             client = MongoClient(**config())
             Document.__db = client.get_database()
-        return Document.__db[convert_cls_name(self.__name__)]
+        return Document.__db.get_collection(convert_cls_name(self.__name__))
 
     def values(self, *fields):
         projects = self._projects

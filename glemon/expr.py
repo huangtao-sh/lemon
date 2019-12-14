@@ -151,6 +151,24 @@ class Combin():
         return self
 
 
+def And(*items):
+    '组合多个查询条件，用 and 连接'
+    '全部为真，返回真'
+    return Combin(*items, op="$and")
+
+
+def Or(*items):
+    '组合多个查询条件，用 or 连接'
+    '任一为真，返回真'
+    return Combin(*items, op='$or')
+
+
+def Nor(*items):
+    '组合多个查询条件，用 nor 连接'
+    '全部为假，返回真'
+    return Combin(*items, op='$nor')
+
+
 class _Operator():
     def __init__(self, project, operator=None, kw=None):
         self.project = project._name

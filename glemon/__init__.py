@@ -8,6 +8,7 @@ from .cachedquery import load_query
 from .__version__ import version as __version__
 from .shadow import Shadow, profile
 from .loadcheck import dup_check
+from .expr import And, Or, Nor
 shadow = Shadow
 
-__all__ = 'config', 'P', 'Document', 'load_query', '__version__', 'Descriptor', 'shadow','dup_check'
+__all__ = 'config', 'P', 'Document', 'load_query', '__version__', 'Descriptor', 'shadow', 'dup_check'
