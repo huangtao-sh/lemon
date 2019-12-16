@@ -34,8 +34,7 @@ class BulkResult(object):
                 f'Modified : {self.result["nModified"]:9,d}\n'
                 f'Upserted : {self.result["nUpserted"]:9,d}\n'
                 f'Removed  : {self.result["nRemoved"]:9,d}\n'
-                f'Errors   : {self.result['writeErrors']}'
-                )
+                f'Errors   : {self.result["writeErrors"]}')
 
 
 class BulkWrite(object):
