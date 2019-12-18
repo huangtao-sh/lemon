@@ -5,9 +5,9 @@
 # Email:   huangtao.sh@icloud.com
 # 创建：2019-12-15 15:56
 
-from orange import Data, Path
-from .document import enlist, Document, InsertOne, ReplaceOne, UpdateOne, split
-from asyncio import wait
+from orange import Data, Path, split
+from pymongo import InsertOne, ReplaceOne, UpdateOne, UpdateMany
+from .loadfile import enlist
 
 MAX_SIZE = 100000
 
@@ -21,12 +21,13 @@ class BulkResult(object):
                     'nUpserted'):
             self.result.setdefault(key, 0)
 
-    def __call__(self, result):
+    def __call__(self, other):
+        other = other.bulk_api_result
         for key in ('writeErrors', 'upserted'):
-            self.result[key].extend(result[key])
+            self.result[key].extend(other[key])
         for key in ('nInserted', 'nRemoved', 'nMatched', 'nModified',
                     'nUpserted'):
-            self.result[key] += result[key]
+            self.result[key] += other[key]
 
     def __str__(self):
         return (f'Inserted : {self.result["nInserted"]:9,d}\n'
@@ -37,12 +38,24 @@ class BulkResult(object):
                 f'Errors   : {self.result["writeErrors"]}')
 
 
+METHOD = {
+    'insert': InsertOne,
+    'InsertOne': InsertOne,
+    'update': UpdateOne,
+    'UpdateOne': UpdateOne,
+    'replace': ReplaceOne,
+    'ReplaceOne': ReplaceOne,
+    'UpdateMany': UpdateMany
+}
+
+
 class BulkWrite(object):
     def __init__(self,
-                 document: Document,
+                 document: 'Document',
                  data: Data,
                  fields=None,
                  keys=None,
+                 upsert=True,
                  method='insert'):
         self.document = document
         if not isinstance(data, Data):
@@ -50,16 +63,16 @@ class BulkWrite(object):
         self._data = data
         self.fields = fields or enlist(document._projects)
         self.keys = enlist(keys or '_id')
-        if method not in ('insert', 'update', 'replace'):
-            raise Exception('Error: method must be insert,update or replace')
-        self.method = method
+        self.method = METHOD.get(method, None)
+        self.upsert = upsert
 
     def __iter__(self):
-        if self.method == 'insert':
+        method = self.method
+        if method == InsertOne:
             fields = self.fields
             yield from self._data.converter(lambda row: InsertOne(
                 dict(zip(fields, row))))
-        elif self.method == 'update':
+        elif method in (UpdateOne, UpdateMany):
             key_indexes, value_indexes, fields = [], [], []
             keys = self.keys
 
@@ -69,11 +82,11 @@ class BulkWrite(object):
                 else:
                     fields.append(f)
                     value_indexes.append(i)
-            yield from self._data.converter(lambda row: UpdateOne(
+            yield from self._data.converter(lambda row: method(
                 dict(zip(keys, [row[i] for i in key_indexes])),
                 {'$set': dict(zip(fields, [row[i] for i in value_indexes]))},
-                upsert=True))
-        else:
+                upsert=self.upsert))
+        elif method == ReplaceOne:
             key_indexes, fields = [], self.fields
             keys = self.keys
 
@@ -83,7 +96,9 @@ class BulkWrite(object):
             yield from self._data.converter(lambda row: ReplaceOne(
                 dict(zip(keys, [row[i] for i in key_indexes])),
                 dict(zip(fields, row)),
-                upsert=True))
+                upsert=self.upsert))
+        else:
+            raise Exception('method 参数错误')
 
     def execute(self,
                 ordered=True,
@@ -94,8 +109,7 @@ class BulkWrite(object):
         for data in split(self, MAX_SIZE):
             result(
                 collection.bulk_write(list(data), ordered,
-                                      bypass_document_validation,
-                                      session).bulk_api_result)
+                                      bypass_document_validation, session))
         return result
 
     async def sync_execute(self,
@@ -103,9 +117,9 @@ class BulkWrite(object):
                            bypass_document_validation=False,
                            session=None):
         collection = self.document._acollection
-        result = []
+        result = BulkResult()
         for data in split(self, MAX_SIZE):
-            result.append(
-                collection.bulk_write(list(data), ordered,
-                                      bypass_document_validation, session))
+            result(await
+                   collection.bulk_write(list(data), ordered,
+                                         bypass_document_validation, session))
         return result

@@ -8,10 +8,11 @@
 # 修改：2018-10-15 22:03 增加 show, profile 等功能
 
 from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
-from orange import convert_cls_name, cachedproperty, wlen, tprint, split
+from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config
 from .loadfile import ImportFile, FileImported, enlist
+from .bulk import BulkWrite
 
 
 class DocumentMeta(type):
@@ -245,3 +246,12 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     @classmethod
     def find(cls, *args, **kw):
         return cls.objects.filter(*args, **kw)
+
+    @classmethod
+    def bulkwrite(cls,
+                  data: Data,
+                  fields=None,
+                  keys=None,
+                  upsert=True,
+                  method='insert'):
+        return BulkWrite(data, fields, keys, upsert, method)
