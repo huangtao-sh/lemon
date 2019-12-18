@@ -9,7 +9,7 @@ from orange import Data, Path
 from .document import enlist, Document, InsertOne, ReplaceOne, UpdateOne, split
 from asyncio import wait
 
-MAX_SIZE = 10000
+MAX_SIZE = 100000
 
 
 class BulkResult(object):
@@ -39,16 +39,16 @@ class BulkResult(object):
 
 class BulkWrite(object):
     def __init__(self,
-                 data: Data,
-                 fields,
                  document: Document,
+                 data: Data,
+                 fields=None,
                  keys=None,
                  method='insert'):
+        self.document = document
         if not isinstance(data, Data):
             data = Data(data)
         self._data = data
-        self.fields = fields
-        self.document = document
+        self.fields = fields or enlist(document._projects)
         self.keys = enlist(keys or '_id')
         if method not in ('insert', 'update', 'replace'):
             raise Exception('Error: method must be insert,update or replace')
@@ -85,16 +85,27 @@ class BulkWrite(object):
                 dict(zip(fields, row)),
                 upsert=True))
 
-    def execute(self):
+    def execute(self,
+                ordered=True,
+                bypass_document_validation=False,
+                session=None):
         collection = self.document._collection
         result = BulkResult()
         for data in split(self, MAX_SIZE):
-            result(collection.bulk_write(list(data)).bulk_api_result)
+            result(
+                collection.bulk_write(list(data), ordered,
+                                      bypass_document_validation,
+                                      session).bulk_api_result)
         return result
 
-    async def sync_execute(self):
+    async def sync_execute(self,
+                           ordered=True,
+                           bypass_document_validation=False,
+                           session=None):
         collection = self.document._acollection
         result = []
         for data in split(self, MAX_SIZE):
-            result.append(collection.bulk_write(list(data)))
+            result.append(
+                collection.bulk_write(list(data), ordered,
+                                      bypass_document_validation, session))
         return result
