@@ -125,6 +125,9 @@ class P(metaclass=_P):
     def unset(self, val=None):
         return _Operator(self, '$unset')(val)
 
+    def currentDate(self, project):
+        return _Operator(self, '$currentDate')({project: True})
+
 
 class Combin():
     def __init__(self, *items, op='$and', invert=False):
