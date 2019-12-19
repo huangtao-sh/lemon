@@ -126,7 +126,7 @@ class P(metaclass=_P):
         return _Operator(self, '$unset')(val)
 
     def currentDate(self, project):
-        return _Operator(self, '$currentDate')({project: True})
+        return _Operator(self, '$currentDate')
 
 
 class Combin():
