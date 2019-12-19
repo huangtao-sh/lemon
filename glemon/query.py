@@ -9,7 +9,7 @@
 # from pymongo import *
 from .expr import P
 from .paginate import Pagination
-from orange.coroutine import wait
+from asyncio import wait
 from orange import ensure, tprint, Path
 import math
 from orange.xlsx import Book

@@ -122,6 +122,9 @@ class P(metaclass=_P):
     def exists(self, val=True):
         return _Operator(self, '$exists')(val)
 
+    def unset(self, val=None):
+        return _Operator(self, '$unset')(val)
+
 
 class Combin():
     def __init__(self, *items, op='$and', invert=False):
