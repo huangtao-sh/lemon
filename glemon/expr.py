@@ -222,6 +222,8 @@ class _Operator():
     to_project = to_query
 
     def to_update(self):
+        if not self.operator:
+            self.operator = '$set'
         return {self.operator: {self.project: self.args}}
 
     def to_group(self):
