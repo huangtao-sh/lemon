@@ -125,8 +125,11 @@ class P(metaclass=_P):
     def unset(self, val=None):
         return _Operator(self, '$unset')(val)
 
-    def currentDate(self, project):
+    def currentDate(self):
         return _Operator(self, '$currentDate')(True)
+
+    def setOnInsert(self, val):
+        return _Operator(self, '$setOnInsert')(val)
 
 
 class Combin():
@@ -225,9 +228,7 @@ class _Operator():
     to_project = to_query
 
     def to_update(self):
-        if not self.operator:
-            self.operator = '$set'
-        return {self.operator: {self.project: self.args}}
+        return {self.operator or '$set': {self.project: self.args}}
 
     def to_group(self):
         return {self.project: {self.operator: self.args}}
