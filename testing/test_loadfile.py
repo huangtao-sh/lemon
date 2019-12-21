@@ -31,7 +31,7 @@ class TestLoad2(unittest.TestCase):
     def testLoad(self):
         with Path.tempfile(doctext, suffix='.csv') as f:
             r = TestLoadDoc.loadfile(f)
-            self.assertEqual(r.inserted_count, 2)
+            self.assertEqual(TestLoadDoc.objects.count(), 2)
         obj = TestLoadDoc.objects.filter(no='001').first()
         obj = dict(obj)
         obj.pop('_id')
@@ -63,7 +63,7 @@ class TestLoad(unittest.TestCase):
         for code in ('utf8', 'gbk', 'cp936', 'gb2312'):
             with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
-                self.assertEqual(r.inserted_count, 3)
+                self.assertEqual(TestLoadFile.objects.count(), 3)
             self.assertEqual(TestLoadFile.objects.count(), 3)
             r = TestLoadFile.objects.filter(a=1).first()
             self.assertEqual(r.c, '黄涛')
@@ -74,7 +74,7 @@ class TestLoad(unittest.TestCase):
             options['encoding'] = code
             with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
-                self.assertEqual(r.inserted_count, 3)
+                self.assertEqual(TestLoadFile.objects.count(), 3)
             self.assertEqual(TestLoadFile.objects.count(), 3)
             r = TestLoadFile.objects.filter(a=1).first()
             self.assertEqual(r.c, '黄涛')
@@ -103,7 +103,7 @@ class TestLoad(unittest.TestCase):
     def testInsert(self):
         with Path.tempfile(text, suffix='.csv') as f:
             r = TestLoadFile.loadfile(f)
-            self.assertEqual(r.inserted_count, 3)
+            self.assertEqual(TestLoadFile.objects.count(), 3)
         self.assertEqual(TestLoadFile.objects.count(), 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
@@ -133,7 +133,7 @@ class TestLoad(unittest.TestCase):
             for r in range(200000):
                 yield (r, f'abc{r}', 25)
 
-        TestLoadDoc.load(data(), drop=True, method='insert')
+        TestLoadDoc.bulk_write(data(), drop=True, method='insert')
         self.assertEqual(TestLoadDoc.objects.count(), 200000)
         TestLoadDoc.objects.filter(P._id == 0).update_one(name='abc')
         self.assertEqual(TestLoadDoc.objects.get(0).name, 'abc')
@@ -143,11 +143,10 @@ class TestLoad(unittest.TestCase):
             for r in range(count):
                 yield (r, f'abcd{r}', 27)
 
-        TestLoadDoc.load(data2(),
-                         drop=True,
-                         keys='_id',
-                         fields='_id,name,age',
-                         method='replace',
-                         size=20)
+        TestLoadDoc.bulk_write(data2(),
+                               drop=True,
+                               keys='_id',
+                               fields='_id,name,age',
+                               method='replace')
         self.assertEqual(
             TestLoadDoc.objects.filter(P.age == 27).count(), count)

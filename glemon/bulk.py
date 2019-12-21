@@ -13,13 +13,13 @@ MAX_SIZE = 100000
 
 
 class BulkResult(object):
-    def __init__(self, result={}):
-        self.result = result
+    def __init__(self):
+        self.result = {}
         for key in ('writeErrors', 'upserted'):
-            self.result.setdefault(key, [])
+            self.result[key] = []
         for key in ('nInserted', 'nRemoved', 'nMatched', 'nModified',
                     'nUpserted'):
-            self.result.setdefault(key, 0)
+            self.result[key] = 0
 
     def __call__(self, other):
         other = other.bulk_api_result
@@ -84,7 +84,7 @@ class BulkWrite(object):
             self.fields = mapper.keys()
             self._data.columns(mapper.values())
         else:
-            self.fields = fields or enlist(document._projects)
+            self.fields = enlist(fields or document._projects)
         self.keys = enlist(keys or '_id')
         self.method = METHOD.get(method, None)
         self.upsert = upsert

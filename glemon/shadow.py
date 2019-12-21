@@ -9,14 +9,14 @@
 from orange import encrypt, decrypt
 from .document import Document
 
-PASSWORDNAMES = {'passwd', 'password'}   # 定义密码字段名称
+PASSWORDNAMES = {'passwd', 'password'}  # 定义密码字段名称
 
 
 def chkpwd(x):
     return x.lower() in PASSWORDNAMES
 
 
-class Shadow(Document):           # 配置库
+class Shadow(Document):  # 配置库
     _projects = 'id', 'profile'  # 标志，具体配置内容
 
     @classmethod
@@ -42,16 +42,18 @@ class Shadow(Document):           # 配置库
     @classmethod
     def write(cls, zhonglei, profile=None):
         # 设置配置，如有密码字段则自动加密
+        collection = cls.get_collection()
         if profile:
             if isinstance(profile, dict):
                 profile = profile.copy()
                 for k, v in profile.items():
                     if chkpwd(k):
                         profile[k] = encrypt(v)
-            cls.objects.filter(_id=zhonglei).upsert_one(
-                profile=profile)
+            collection.find_one_and_replace({'_id': zhonglei},
+                                            {'profile': profile},
+                                            upsert=True)
         else:  # 如profile 为空，则删除相应的配置
-            cls.objects.filter(_id=zhonglei).delete()
+            collection.find_one_and_delete({'_id': zhonglei})
 
 
 class _Shadow():

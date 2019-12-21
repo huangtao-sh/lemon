@@ -13,6 +13,7 @@ from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
 from .bulk import BulkWrite
+from bson import ObjectId
 
 
 class DocumentMeta(type):
@@ -31,9 +32,6 @@ class DocumentMeta(type):
         return cls._collection.drop()
 
     drop_collection = drop
-
-    def aggregate(cls, *args, **kw):
-        return Aggregation(cls, *args, **kw)
 
     def insert_one(cls, *args, **kw):
         return cls._collection.insert_one(*args, **kw)
@@ -92,6 +90,10 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         for fn in files:
             await cls.amport_file(fn, drop=clear, dupcheck=dup_check, **kw)
 
+    @classmethod
+    def aggregate(cls, pipeline=None, **kw):
+        return Aggregation(cls, pipeline, **kw)
+
     @property
     def id(self):
         return self.get('_id')
@@ -102,23 +104,21 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     def save(self):
         if self._modified:
-            if self.id:
-                d = self.copy()
-                d.pop('_id')
-                type(self).objects.filter(_id=self.id).upsert_one(**d)
-            else:
-                self._collection.insert_one(self)
+            if self.id is None:
+                self._id = ObjectId()
+            self.get_collection().find_one_and_replace({'_id': self._id},
+                                                       self,
+                                                       upsert=True)
             self._modified = False
         return self
 
     async def asave(self):
         if self._modified:
-            if self.id:
-                d = self.copy()
-                d.pop('_id')
-                await type(self).abjects.filter(_id=self.id).upsert_one(**d)
-            else:
-                await self._collection.insert_one(self)
+            if self.id is None:
+                self._id = ObjectId()
+            await self._acollection.find_one_and_replace({'_id': self._id},
+                                                           self,
+                                                           upsert=True)
             self._modified = False
         return self
 
@@ -156,8 +156,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @cachedproperty
     def _collection(self):
-        return get_client().get_default_database().get_collection(
-            convert_cls_name(self.__name__))
+        return self.get_collection()
 
     def values(self, *fields):
         projects = self._projects

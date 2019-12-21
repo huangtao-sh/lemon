@@ -49,7 +49,7 @@ class BaseQuery(object):
     @property
     def collection(self):
         '''数据集'''
-        return self.document._collection
+        return self.document.get_collection()
 
     @property
     def is_paginated(self):
@@ -299,10 +299,10 @@ class BaseQuery(object):
         return self.update(*args, upsert=upsert, multi=multi, **kw)
 
     def update_one(self, *args, upsert=False, multi=False, **kw):
-        return self.update(*args, **kw)
+        return self.update(*args, upsert=upsert, multi=multi, **kw)
 
     def upsert_one(self, *args, upsert=True, multi=False, **kw):
-        return self.update(*args, **kw)
+        return self.update(*args, upsert=upsert, multi=multi, **kw)
 
     def _insert(self, objs, func=None, **kw):
         return self.collection.insert_many(
