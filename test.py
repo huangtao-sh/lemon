@@ -8,19 +8,6 @@ import re
 #print(P.abc.regex('abc').to_query())
 #print((P.abc == 'hello').to_update())
 #print(P.abc.unset().to_update())
+from params.sjdr import sjdr
 
-
-class Test(Document):
-    _projects = 'a,b,c'
-
-
-up = updater(P.abc.unset(),
-             P.test.unset(),
-             P.createdate.currentDate(),
-             P.abcd.setOnInsert('abc'),
-             name='hunter')
-
-Test.find(P.name=='hunter').update(P.createdate.unset(),hello='world')
-
-for r in Test.objects:
-    print(r)
+sjdr()

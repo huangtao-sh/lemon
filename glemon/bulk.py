@@ -30,12 +30,29 @@ class BulkResult(object):
             self.result[key] += other[key]
 
     def __str__(self):
-        return (f'Inserted : {self.result["nInserted"]:9,d}\n'
-                f'Matched  : {self.result["nMatched"]:9,d}\n'
-                f'Modified : {self.result["nModified"]:9,d}\n'
-                f'Upserted : {self.result["nUpserted"]:9,d}\n'
-                f'Removed  : {self.result["nRemoved"]:9,d}\n'
-                f'Errors   : {self.result["writeErrors"]}')
+        return '\t'.join(f'{key}:{self.result.get(key):,d}'
+                         for key in ('nInserted', 'nMatched', 'nModified',
+                                     'nRemoved'))
+
+    @property
+    def matched_count(self):
+        return self.result.get('nMatched')
+
+    @property
+    def inserted_count(self):
+        return self.result.get('nInserted')
+
+    @property
+    def modified_count(self):
+        return self.result.get('nModified')
+
+    @property
+    def Upserted_count(self):
+        return self.result.get('nUpserted')
+
+    @property
+    def Removed_count(self):
+        return self.result.get('nRemoved')
 
 
 METHOD = {
@@ -53,15 +70,21 @@ class BulkWrite(object):
     def __init__(self,
                  document: 'Document',
                  data: Data,
+                 mapper: dict = None,
                  fields=None,
                  keys=None,
                  upsert=True,
+                 drop=True,
                  method='insert'):
         self.document = document
         if not isinstance(data, Data):
             data = Data(data)
         self._data = data
-        self.fields = fields or enlist(document._projects)
+        if mapper:
+            self.fields = mapper.keys()
+            self._data.columns(mapper.values())
+        else:
+            self.fields = fields or enlist(document._projects)
         self.keys = enlist(keys or '_id')
         self.method = METHOD.get(method, None)
         self.upsert = upsert

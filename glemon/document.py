@@ -10,7 +10,7 @@
 from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
 from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
-from .config import config
+from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
 from .bulk import BulkWrite
 
@@ -20,11 +20,11 @@ class DocumentMeta(type):
     _collection_cache = {}
 
     @property
-    def objects(cls):
+    def objects(cls) -> BaseQuery:
         return BaseQuery(cls)
 
     @property
-    def abjects(cls):
+    def abjects(cls) -> AsyncioQuery:
         return AsyncioQuery(cls)
 
     def drop(cls):
@@ -46,47 +46,6 @@ class DocumentMeta(type):
 
     def ansert_many(cls, *args, **kw):
         return cls._acollection.insert_many(*args, **kw)
-
-    def bulk_write(cls,
-                   data,
-                   mapper=None,
-                   fields=None,
-                   keys=None,
-                   method='insert',
-                   drop=True,
-                   ordered=True):
-        if not mapper:
-            fields = enlist(fields or cls._projects)
-            mapper = {k: i for i, k in enumerate(fields) if k}
-        if method == 'insert':
-            fields = mapper.items()
-
-            def add(row):
-                return InsertOne(dict((x, row[y]) for x, y in fields))
-        else:
-            keys = enlist(keys or '_id')
-            if method == 'replace':
-                keymapper = tuple((k, mapper[k]) for k in keys)
-
-                def _add(x, y):
-                    return ReplaceOne(x, y, upsert=True)
-            else:
-                keymapper = tuple((k, mapper.pop(k)) for k in keys)
-
-                def _add(x, y):
-                    return UpdateOne(x, {'$set': y}, upsert=True)
-
-            fields = mapper.items()
-
-            def add(row):
-                return _add(dict((x, row[y]) for x, y in keymapper),
-                            dict((x, row[y]) for x, y in fields))
-
-        if data:
-            if method == 'insert' and drop:
-                cls._collection.drop()
-            return cls._collection.bulk_write(list(map(add, data)),
-                                              ordered=ordered)
 
 
 class Descriptor(dict):
@@ -111,7 +70,6 @@ class Descriptor(dict):
 
 
 class Document(dict, ImportFile, metaclass=DocumentMeta):
-    __db = None
     __adb = None
     _projects = ()
     _textfmt = ''  # 文本格式
@@ -119,27 +77,15 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     _profile = {}  # profile 属性时使用
 
     @classmethod
-    def load(cls,
-             data,
-             mapper=None,
-             fields=None,
-             keys=None,
-             method='insert',
-             drop=True,
-             ordered=True,
-             size=100000):
-        if method not in ('insert', 'update', 'replace'):
-            raise Exception('Error: method must be insert,update or replace')
-        if method == 'insert' and drop:
-            cls.drop()
-        for data in split(data, size):
-            cls.bulk_write(data,
-                           mapper=mapper,
-                           fields=fields,
-                           keys=keys,
-                           method=method,
-                           drop=False,
-                           ordered=ordered)
+    def get_collection(cls):
+        client = get_client()
+        db = client.get_default_database()
+        return db.get_collection(convert_cls_name(cls.__name__))
+
+    @classmethod
+    def start_session(cls, causal_consistency=True):
+        client = get_client()
+        return client.start_session(causal_consistency)
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
@@ -210,10 +156,8 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @cachedproperty
     def _collection(self):
-        if Document.__db is None:
-            client = MongoClient(**config())
-            Document.__db = client.get_database()
-        return Document.__db.get_collection(convert_cls_name(self.__name__))
+        return get_client().get_default_database().get_collection(
+            convert_cls_name(self.__name__))
 
     def values(self, *fields):
         projects = self._projects
@@ -244,14 +188,21 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         tprint(data, format_spec=format_spec, sep=sep)
 
     @classmethod
-    def find(cls, *args, **kw):
+    def find(cls, *args, **kw) -> BaseQuery:
         return cls.objects.filter(*args, **kw)
 
     @classmethod
-    def bulkwrite(cls,
-                  data: Data,
-                  fields=None,
-                  keys=None,
-                  upsert=True,
-                  method='insert'):
-        return BulkWrite(data, fields, keys, upsert, method)
+    def bulk_write(cls,
+                   data: Data,
+                   mapper: dict = None,
+                   fields=None,
+                   keys=None,
+                   upsert=True,
+                   ordered=True,
+                   drop=True,
+                   method='insert'):
+
+        if method == 'insert' and drop:
+            cls.get_collection().delete_many({})
+        return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
+                         method).execute(ordered=ordered)

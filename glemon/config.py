@@ -7,8 +7,18 @@
 
 from orange import is_installed
 from orange.config import Config
+from pymongo import MongoClient
 import sys
 __config = None
+__db = None
+__adb = None
+
+
+def get_client():
+    global __db
+    if not __db:
+        __db = MongoClient(**config())
+    return __db
 
 
 def config(is_dev=None, **kw):
@@ -23,6 +33,7 @@ def config(is_dev=None, **kw):
         config.setdefault('host', 'mongodb://localhost/mongo')
         config.setdefault('tz_aware', True)
         config.setdefault('connect', False)
+        config.setdefault('retryWrites', 'false')
         if _config.is_dev:
             config['host'] = 'mongodb://localhost/test'
         __config = config

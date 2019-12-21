@@ -13,6 +13,7 @@ from asyncio import wait
 from orange import ensure, tprint, Path
 import math
 from orange.xlsx import Book
+from operator import itemgetter
 
 
 def abort(*args, **kwargs):
@@ -243,11 +244,7 @@ class BaseQuery(object):
         if len(fields) == 1:
             fields = fields[0]
         fields = enlist(fields)
-        if len(fields) == 1:
-            result = map(lambda d: d.values(*fields)[0], self)
-        else:
-            result = map(lambda d: d.values(*fields), self)
-        yield from result
+        yield from map(itemgetter(*fields), self)
 
     def show(self, *fields, format_spec={}, sep=' '):
         tprint(self.scalar(*fields), format_spec=format_spec, sep=sep)
@@ -355,18 +352,13 @@ class AsyncioQuery(BaseQuery):
         return obj and self.document(from_query=True, **obj)
 
     async def scalar(self, *fields):
-        self.project(*fields)
+        from .loadfile import enlist
         if len(fields) == 1:
-
-            def extract(d):
-                return d.values(*fields)[0]
-        else:
-
-            def extract(d):
-                return d.values(*fields)
-
-        async for i in self:
-            yield extract(i)
+            fields = fields[0]
+        fields = enlist(fields)
+        getter = itemgetter(*fields)
+        async for obj in self:
+            yield getter(obj)
 
     async def _paginate(self, page, per_page=20):
         total = await self.cursor.count(True)
@@ -391,7 +383,7 @@ class AsyncioQuery(BaseQuery):
 
 class Aggregation:
     def __init__(self, document, pipeline=None, **kw):
-        self.collection = document._collection
+        self.collection = document.get_collection()
         self.pipeline = pipeline or []
         self.kw = kw or {}
 
