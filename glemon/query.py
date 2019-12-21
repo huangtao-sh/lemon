@@ -7,7 +7,7 @@
 # 修订：2019-12-13 17:11 新增 export 功能
 
 # from pymongo import *
-from .expr import P
+from .expr import P, updater
 from .paginate import Pagination
 from asyncio import wait
 from orange import ensure, tprint, Path
@@ -241,18 +241,13 @@ class BaseQuery(object):
     def scalar(self, *fields):
         from .loadfile import enlist
         if len(fields) == 1:
-            fields = enlist(fields[0])
+            fields = fields[0]
+        fields = enlist(fields)
         if len(fields) == 1:
-
-            def extract(d):
-                return d.values(*fields)[0]
+            result = map(lambda d: d.values(*fields)[0], self)
         else:
-
-            def extract(d):
-                return d.values(*fields)
-
-        for d in self:
-            yield extract(d)
+            result = map(lambda d: d.values(*fields), self)
+        yield from result
 
     def show(self, *fields, format_spec={}, sep=' '):
         tprint(self.scalar(*fields), format_spec=format_spec, sep=sep)
@@ -301,36 +296,15 @@ class BaseQuery(object):
     def update(self, *args, upsert=False, multi=True, **kw):
         func = self.collection.update_many if multi else \
             self.collection.update_one
-        args = [arg.to_update() for arg in args]
-        for k, v in kw.items():
-            if k.startswith('$'):
-                args.append({k: v})
-            else:
-                args.append({'$set': {k: v}})
-        updater = {}
-        for arg in args:
-            for k, v in arg.items():
-                if k in updater:
-                    a = updater.get(k)
-                    if isinstance(a, dict) and isinstance(v, dict):
-                        a.update(v)
-                    else:
-                        updater[k] = v
-                else:
-                    updater[k] = v
-        return func(self.query, updater, upsert=upsert)
+        return func(self.query, updater(*args, **kw), upsert=upsert)
 
-    def upsert(self, *args, **kw):
-        kw['upsert'] = True
+    def upsert(self, *args, upsert=True, multi=True, **kw):
+        return self.update(*args, upsert=upsert, multi=multi, **kw)
+
+    def update_one(self, *args, upsert=False, multi=False, **kw):
         return self.update(*args, **kw)
 
-    def update_one(self, *args, **kw):
-        kw['multi'] = False
-        return self.update(*args, **kw)
-
-    def upsert_one(self, *args, **kw):
-        kw['multi'] = False
-        kw['upsert'] = True
+    def upsert_one(self, *args, upsert=True, multi=False, **kw):
         return self.update(*args, **kw)
 
     def _insert(self, objs, func=None, **kw):

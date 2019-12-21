@@ -1,23 +1,26 @@
 from pymongo import MongoClient
 from asyncio import run, wait
-from orange import Path, limit, timeit
-from glemon import Document
+from orange import Path, limit, timeit, R
+from glemon import Document, P
+from glemon.expr import updater
+from pprint import pprint
+import re
+#print(P.abc.regex('abc').to_query())
+#print((P.abc == 'hello').to_update())
+#print(P.abc.unset().to_update())
 
 
 class Test(Document):
-    _projects = '_id,b,c'
-    pass
+    _projects = 'a,b,c'
 
 
-def read():
-    for r in range(10):
-        yield [r, f'b-{r}', f'c-{r}']
+up = updater(P.abc.unset(),
+             P.test.unset(),
+             P.createdate.currentDate(),
+             P.abcd.setOnInsert('abc'),
+             name='hunter')
 
+Test.find(P.name=='hunter').update(P.createdate.unset(),hello='world')
 
-blk = Test.bulkwrite(Test, read())
-
-Test.drop()
-r = run(blk.sync_execute())
-print(r)
 for r in Test.objects:
     print(r)

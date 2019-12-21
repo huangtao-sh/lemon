@@ -1,5 +1,6 @@
 # from functools import *
 from orange import R
+from collections import defaultdict
 
 
 class _P(type):
@@ -20,7 +21,6 @@ OPERATORS = {
     'unset': '$unset',
     'inc': '$inc',
     'mul': '$mul',
-    'currentDate': '$currentDate',
     #'addToSet':'$addToSet',
     'pop': '$pop',
     'pushAll': '$pushAll',
@@ -73,28 +73,28 @@ class P(metaclass=_P):
             raise Exception('无此函数')
 
     def __eq__(self, value):
-        return _Operator(self, None)(value)
+        return _Operator(self, None, value)
 
     def __lt__(self, value):
-        return _Operator(self, '$lt')(value)
+        return _Operator(self, '$lt', value)
 
     def __gt__(self, val):
-        return _Operator(self, '$gt')(val)
+        return _Operator(self, '$gt', val)
 
     def __le__(self, val):
-        return _Operator(self, '$lte')(val)
+        return _Operator(self, '$lte', val)
 
     def __ge__(self, val):
-        return _Operator(self, '$gte')(val)
+        return _Operator(self, '$gte', val)
 
     def __ne__(self, val):
-        return _Operator(self, '$ne')(val)
+        return _Operator(self, '$ne', val)
 
     def between(self, a, b):
         return (self >= a) & (self <= b)
 
     def to_group(self):
-        return {'_id': '$%s' % (self._name)}
+        return {'_id': f'${self._name}'}
 
     def to_order(self):
         return self._name, -1 if self._neg else 1
@@ -120,16 +120,34 @@ class P(metaclass=_P):
         return self.regex('%s$' % (val), 'i')
 
     def exists(self, val=True):
-        return _Operator(self, '$exists')(val)
+        return _Operator(self, '$exists', val)
 
     def unset(self, val=None):
-        return _Operator(self, '$unset')(val)
+        return _Operator(self, '$unset', val)
 
     def currentDate(self):
         return _Operator(self, '$currentDate')(True)
 
     def setOnInsert(self, val):
-        return _Operator(self, '$setOnInsert')(val)
+        return _Operator(self, '$setOnInsert', val)
+
+    def in_(self, lst: list):
+        '符合列表元素之一'
+        return _Operator(self, '$in', lst)
+
+    def reg_in(self, lst: list):
+        '''
+        query: P.abc.reg_in([r"abc",r"def"])
+        正则表达式匹配'''
+        return _Operator(self, '$in', [(R / r)._regex for r in lst])
+
+    def count(self):
+        'group: P.abc.count() '
+        return _Operator(self, '$sum', 1)
+
+    def sum(self, field=None):
+        'group: P.abc.sum("$abc")'
+        return _Operator(self, '$sum', field)
 
 
 class Combin():
@@ -179,11 +197,12 @@ def Nor(*items):
 
 
 class _Operator():
-    def __init__(self, project, operator=None, kw=None):
+    def __init__(self, project, operator=None, args=None, kw=None):
         self.project = project._name
         self.operator = operator
         self.invert = False
         self.kw = kw or {}
+        self.args = args
 
     def __invert__(self):
         self.invert = not self.invert
@@ -231,4 +250,22 @@ class _Operator():
         return {self.operator or '$set': {self.project: self.args}}
 
     def to_group(self):
-        return {self.project: {self.operator: self.args}}
+        return {self.project: {self.operator: self.args or f"${self.project}"}}
+
+    def _update(self, updater):
+        op = self.operator or '$set'
+        updater.setdefault(op, {})
+        updater[op].update({self.project: self.args})
+
+
+def updater(*args, **kw):
+    result = {}
+    for r in args:
+        r._update(result)
+    for k, v in kw.items():
+        if not k.startswith('$'):
+            v = {k: v}
+            k = '$set'
+        result.setdefault(k, {})
+        result[k].update(v)
+    return result
