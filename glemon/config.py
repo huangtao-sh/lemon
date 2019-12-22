@@ -8,17 +8,23 @@
 from orange import is_installed
 from orange.config import Config
 from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 import sys
 __config = None
 __db = None
 __adb = None
 
 
-def get_client():
-    global __db
-    if not __db:
-        __db = MongoClient(**config())
-    return __db
+def get_client(sync=False):
+    global __db, __adb
+    if sync:
+        if not __adb:
+            __adb = AsyncIOMotorClient(**config())
+        return __adb
+    else:
+        if not __db:
+            __db = MongoClient(**config())
+        return __db
 
 
 def config(is_dev=None, **kw):

@@ -58,7 +58,13 @@ def subdict(d, *keys):
     return result
 
 
-class ImportFile(object):
+class _Document(object):
+    @classmethod
+    def bulk_write(cls, data, **options):
+        ...
+
+
+class ImportFile(_Document):
     '''导入文件类，可以做为基类'''
     _load_mapper = None  # 导入数据时的表头，主要用于跳过标题行
     _load_header = None  # 导入数据时的表头，主要用于跳过标题行，

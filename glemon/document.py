@@ -6,9 +6,9 @@
 # 创建：2017-07-22 09:52
 # 修订：2018-09-11 新增 Descriptor 类
 # 修改：2018-10-15 22:03 增加 show, profile 等功能
+# 修订：2019-12-21 16:10 进行修订
 
-from pymongo import MongoClient, InsertOne, UpdateOne, ReplaceOne
-from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data
+from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data, classproperty
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
@@ -17,9 +17,6 @@ from bson import ObjectId
 
 
 class DocumentMeta(type):
-    _db_cache = {}
-    _collection_cache = {}
-
     @property
     def objects(cls) -> BaseQuery:
         return BaseQuery(cls)
@@ -68,22 +65,16 @@ class Descriptor(dict):
 
 
 class Document(dict, ImportFile, metaclass=DocumentMeta):
-    __adb = None
     _projects = ()
     _textfmt = ''  # 文本格式
     _htmlfmt = ''  # 超文本格式
     _profile = {}  # profile 属性时使用
 
     @classmethod
-    def get_collection(cls):
-        client = get_client()
-        db = client.get_default_database()
-        return db.get_collection(convert_cls_name(cls.__name__))
-
-    @classmethod
-    def start_session(cls, causal_consistency=True):
-        client = get_client()
-        return client.start_session(causal_consistency)
+    def get_collection(cls, sync=False):
+        client = get_client(sync)
+        database = client.get_default_database()
+        return database.get_collection(convert_cls_name(cls.__name__))
 
     @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
@@ -94,6 +85,26 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     def aggregate(cls, pipeline=None, **kw):
         return Aggregation(cls, pipeline, **kw)
 
+    @classmethod
+    def find(cls, *args, **kw) -> BaseQuery:
+        return cls.objects.filter(*args, **kw)
+
+    @classmethod
+    def bulk_write(cls,
+                   data: Data,
+                   mapper: dict = None,
+                   fields=None,
+                   keys=None,
+                   upsert=True,
+                   ordered=True,
+                   drop=True,
+                   method='insert'):
+        if method == 'insert' and drop:
+            cls.get_collection().drop()
+        return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
+                         method).execute(ordered=ordered)
+
+
     @property
     def id(self):
         return self.get('_id')
@@ -102,24 +113,24 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     def id(self, value):
         self['_id'] = value
 
-    def save(self):
+    def _save(self) -> bool:
         if self._modified:
             if self.id is None:
                 self._id = ObjectId()
+            self._modified = False
+            return True
+
+    def save(self):
+        if self._save():
             self.get_collection().find_one_and_replace({'_id': self._id},
                                                        self,
                                                        upsert=True)
-            self._modified = False
-        return self
+            return self
 
     async def asave(self):
-        if self._modified:
-            if self.id is None:
-                self._id = ObjectId()
-            await self._acollection.find_one_and_replace({'_id': self._id},
-                                                           self,
-                                                           upsert=True)
-            self._modified = False
+        if self._save():
+            await self.get_collection(True).find_one_and_replace(
+                {'_id': self._id}, self, upsert=True)
         return self
 
     def __setitem__(self, *args, **kw):
@@ -148,11 +159,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @cachedproperty
     def _acollection(self):
-        if Document.__adb is None:
-            from motor.motor_asyncio import AsyncIOMotorClient
-            client = AsyncIOMotorClient(**config())
-            Document.__adb = client.get_database()
-        return Document.__adb.get_collection(convert_cls_name(self.__name__))
+        return self.get_collection(sync=True)
 
     @cachedproperty
     def _collection(self):
@@ -185,23 +192,3 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         data = [(name, getattr(self, field))
                 for name, field in profile.items()]
         tprint(data, format_spec=format_spec, sep=sep)
-
-    @classmethod
-    def find(cls, *args, **kw) -> BaseQuery:
-        return cls.objects.filter(*args, **kw)
-
-    @classmethod
-    def bulk_write(cls,
-                   data: Data,
-                   mapper: dict = None,
-                   fields=None,
-                   keys=None,
-                   upsert=True,
-                   ordered=True,
-                   drop=True,
-                   method='insert'):
-
-        if method == 'insert' and drop:
-            cls.get_collection().delete_many({})
-        return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
-                         method).execute(ordered=ordered)

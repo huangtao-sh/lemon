@@ -31,7 +31,7 @@ class TestLoad2(unittest.TestCase):
     def testLoad(self):
         with Path.tempfile(doctext, suffix='.csv') as f:
             r = TestLoadDoc.loadfile(f)
-            self.assertEqual(TestLoadDoc.objects.count(), 2)
+            self.assertEqual(r.inserted_count, 2)
         obj = TestLoadDoc.objects.filter(no='001').first()
         obj = dict(obj)
         obj.pop('_id')
@@ -63,7 +63,7 @@ class TestLoad(unittest.TestCase):
         for code in ('utf8', 'gbk', 'cp936', 'gb2312'):
             with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
-                self.assertEqual(TestLoadFile.objects.count(), 3)
+                self.assertEqual(r.inserted_count, 3)
             self.assertEqual(TestLoadFile.objects.count(), 3)
             r = TestLoadFile.objects.filter(a=1).first()
             self.assertEqual(r.c, '黄涛')
@@ -103,7 +103,7 @@ class TestLoad(unittest.TestCase):
     def testInsert(self):
         with Path.tempfile(text, suffix='.csv') as f:
             r = TestLoadFile.loadfile(f)
-            self.assertEqual(TestLoadFile.objects.count(), 3)
+            self.assertEqual(r.inserted_count, 3)
         self.assertEqual(TestLoadFile.objects.count(), 3)
         r = TestLoadFile.objects.filter(a=1).first()
         self.assertEqual(r.b, 'huangtao')
