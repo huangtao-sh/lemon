@@ -61,7 +61,7 @@ class LoadDocument(Document):
     @classmethod
     def load_file(cls, file, options=None, dry=False):
         options = options or cls.load_options
-        dupcheck = options.pop('dupcheck')
+        dupcheck = options.pop('dupcheck', False)
         if dupcheck:
             checker = LoadFile.dupcheck(file, 'loadfile')
         data = cls.read_file(file, **options.pop('file', {}))
@@ -79,7 +79,7 @@ class LoadDocument(Document):
     @classmethod
     async def sync_load_file(cls, file, options=None):
         options = options or cls.load_options
-        dupcheck = options.pop('dupcheck')
+        dupcheck = options.pop('dupcheck', False)
         if dupcheck:
             checker = LoadFile.dupcheck(file, 'loadfile')
         data = cls.read_file(file, **options.pop('file', {}))
