@@ -13,7 +13,19 @@ from asyncio import wait
 from orange import ensure, tprint, Path
 import math
 from orange.xlsx import Book
-from operator import itemgetter
+
+
+def itemgetter(*columns):
+    if len(columns) == 1:
+        col = columns[0]
+
+        def _(obj):
+            return obj.get(col)
+    else:
+        def _(obj):
+            return list(map(obj.get, columns))
+
+    return _
 
 
 def abort(*args, **kwargs):
