@@ -22,6 +22,7 @@ def itemgetter(*columns):
         def _(obj):
             return obj.get(col)
     else:
+
         def _(obj):
             return list(map(obj.get, columns))
 
@@ -341,7 +342,7 @@ class AsyncioQuery(BaseQuery):
 
     @property
     def collection(self):
-        return self.document._acollection
+        return self.document.get_collection(sync=True)
 
     async def first(self):
         obj = await self.collection.find_one(self.query,

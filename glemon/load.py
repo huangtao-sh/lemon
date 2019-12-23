@@ -63,7 +63,7 @@ class LoadDocument(Document):
         options = options or cls.load_options
         dupcheck = options.pop('dupcheck', False)
         if dupcheck:
-            checker = LoadFile.dupcheck(file, 'loadfile')
+            checker = LoadFile.dupcheck(file, cls.__name__)
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
         if blk:
@@ -81,7 +81,7 @@ class LoadDocument(Document):
         options = options or cls.load_options
         dupcheck = options.pop('dupcheck', False)
         if dupcheck:
-            checker = LoadFile.dupcheck(file, 'loadfile')
+            checker = LoadFile.dupcheck(file, cls.__name__)
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
         if blk:
