@@ -73,7 +73,7 @@ class LoadDocument(Document):
             else:
                 result = blk.execute()
                 if dupcheck:
-                    checker.save()
+                    checker.done()
                 return result
 
     @classmethod
@@ -87,5 +87,5 @@ class LoadDocument(Document):
         if blk:
             result = await blk.sync_execute()
             if dupcheck:
-                checker.save()
+                checker.done()
         return result
