@@ -6,14 +6,22 @@
 # 创建：2019-12-21 17:18
 
 from glemon.document import Document
-from orange import Path, Data, limit
+from orange import Path, Data, limit, R, extract
 from .bulk import BulkWrite
 from .loadcheck import LoadFile
+pattern = R / r'(\d{6,8}|\d{4}-\d{2})'
 
 
 class LoadDocument(Document):
     load_options = {
     }  # file :reader: callable,encoding,errors,columns,converter,delimter,sep
+
+    @classmethod
+    def get_ver(cls):
+        name = LoadFile.objects.find(P.category == cls.__name__).order_by(
+            -P.mtime).limit(1).scalar('filename')
+        if name:
+            return extract(name, pattern)
 
     @classmethod
     def read_file(cls, path, reader=None, **kw):
@@ -86,7 +94,7 @@ class LoadDocument(Document):
                 checker = LoadFile.dupcheck(file, cls.__name__)
             except:
                 print(f'{file.name} 已导入，忽略')
-                return 
+                return
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
         if blk:
