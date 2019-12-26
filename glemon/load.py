@@ -64,6 +64,7 @@ class LoadDocument(Document):
         dupcheck = options.pop('dupcheck', False)
         if dupcheck:
             checker = LoadFile.dupcheck(file, cls.__name__)
+
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
         if blk:
@@ -81,7 +82,11 @@ class LoadDocument(Document):
         options = options or cls.load_options
         dupcheck = options.pop('dupcheck', False)
         if dupcheck:
-            checker = LoadFile.dupcheck(file, cls.__name__)
+            try:
+                checker = LoadFile.dupcheck(file, cls.__name__)
+            except:
+                print('{file.name} 已导入，忽略')
+                return 
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
         if blk:
