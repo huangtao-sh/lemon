@@ -5,7 +5,7 @@
 # Email:   huangtao.sh@icloud.com
 # 创建：2019-12-21 17:18
 
-from glemon.document import Document
+from glemon.document import Document, P
 from orange import Path, Data, limit, R, extract
 from .bulk import BulkWrite
 from .loadcheck import LoadFile
@@ -18,7 +18,7 @@ class LoadDocument(Document):
 
     @classmethod
     def get_ver(cls):
-        name = LoadFile.objects.find(P.category == cls.__name__).order_by(
+        name = LoadFile.find(P.category == cls.__name__).order_by(
             -P.mtime).limit(1).scalar('filename')
         if name:
             return extract(name, pattern)
