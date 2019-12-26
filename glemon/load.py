@@ -18,10 +18,10 @@ class LoadDocument(Document):
 
     @classmethod
     def get_ver(cls):
-        name = LoadFile.find(P.category == cls.__name__).order_by(
-            -P.mtime).limit(1).scalar('filename')
-        if name:
-            return extract(name, pattern)
+        obj = LoadFile.find(
+            P.category == cls.__name__).order_by(-P.mtime).first()
+        if obj:
+            return extract(obj.filename, pattern)
 
     @classmethod
     def read_file(cls, path, reader=None, **kw):
