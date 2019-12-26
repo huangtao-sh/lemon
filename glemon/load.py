@@ -85,7 +85,7 @@ class LoadDocument(Document):
             try:
                 checker = LoadFile.dupcheck(file, cls.__name__)
             except:
-                print('{file.name} 已导入，忽略')
+                print(f'{file.name} 已导入，忽略')
                 return 
         data = cls.read_file(file, **options.pop('file', {}))
         blk = cls._bulk(data, **options)
