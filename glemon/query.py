@@ -438,7 +438,7 @@ class Aggregation:
                      for q in query)
         else:
             kw = query
-        self.pipeline.append({'$match': kw})
+        self.pipeline.append({'$match': kw.to_query()})
         return self
 
     def unwind(self, projection):
