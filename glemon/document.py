@@ -77,6 +77,12 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         return database.get_collection(convert_cls_name(cls.__name__))
 
     @classmethod
+    def create_indexes(cls, *indexes):
+        collection = cls.get_collection()
+        for index in indexes:
+            collection.create_index(index)
+
+    @classmethod
     async def load_files(cls, *files, clear=False, dup_check=True, **kw):
         for fn in files:
             await cls.amport_file(fn, drop=clear, dupcheck=dup_check, **kw)
@@ -103,7 +109,6 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             cls.get_collection().drop()
         return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
                          method).execute(ordered=ordered)
-
 
     @property
     def id(self):
