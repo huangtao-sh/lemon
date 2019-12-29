@@ -11,7 +11,7 @@
 from .expr import P, updater, And
 from .paginate import Pagination
 from asyncio import wait
-from orange import ensure, tprint, Path
+from orange import ensure, tprint, Path, split
 import math
 from orange.xlsx import Book
 
@@ -33,15 +33,6 @@ def itemgetter(*columns):
 def abort(*args, **kwargs):
     import flask
     flask.abort(*args, **kwargs)
-
-
-def _split(data, step=1000):
-    length = len(data)
-    i = 0
-    for i in range(step, length, step):
-        yield data[i - step:i]
-    else:
-        yield data[i:]
 
 
 class BaseQuery(object):
@@ -324,7 +315,7 @@ class BaseQuery(object):
     def insert(self, objs, func=None, **kw):
         return sum([
             len(self._insert(data, func=func, **kw).inserted_ids)
-            for data in _split(objs)
+            for data in split(objs)
         ])
 
     def export(self,
@@ -408,7 +399,7 @@ class AsyncioQuery(BaseQuery):
 
     def insert(self, objs, func=None, **kw):
         return wait(
-            [self._insert(data, func=func, **kw) for data in _split(objs)])
+            [self._insert(data, func=func, **kw) for data in split(objs)])
 
 
 class Aggregation(object):
