@@ -106,7 +106,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
                    drop=True,
                    method='insert'):
         if method == 'insert' and drop:
-            cls.get_collection().drop()
+            cls.objects.delete()
         return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
                          method).execute(ordered=ordered)
 

@@ -5,6 +5,7 @@
 # Email:huangtao.sh@icloud.com
 # 创建：2016-12-28 15:14
 # 修订：2019-12-13 17:11 新增 export 功能
+# 修订：2019-12-29 22:21 完善 export 功能
 
 # from pymongo import *
 from .expr import P, updater, And
@@ -326,6 +327,23 @@ class BaseQuery(object):
             for data in _split(objs)
         ])
 
+    def export(self,
+               path: 'Path or Workbook',
+               sheet='Sheet1',
+               projects=None,
+               range_="A1",
+               columns=None,
+               force=False):
+        '''导出数据'''
+        if isinstance(path, Book):
+            path.add_table(range_,
+                           sheet=sheet,
+                           columns=columns,
+                           data=self.scalar(projects))
+        else:
+            with Path(path).write_xlsx(force=force) as book:
+                self.export(book, sheet, projects, range_, columns)
+
 
 class AsyncioQuery(BaseQuery):
     async def paginate(self, page=1, per_page=0):
@@ -393,7 +411,7 @@ class AsyncioQuery(BaseQuery):
             [self._insert(data, func=func, **kw) for data in _split(objs)])
 
 
-class Aggregation:
+class Aggregation(object):
     def __init__(self, document, pipeline=None, **kw):
         self.collection = document.get_collection()
         self.pipeline = pipeline or []
@@ -434,10 +452,9 @@ class Aggregation:
     def match(self, *query):
         '''条件过滤'''
         if len(query) > 1:
-            kw = And(
-                [q.to_query() if hasattr(q, 'to_query') else q for q in query])
+            kw = And(*query)
         else:
-            kw = query
+            kw = query[0]
         self.pipeline.append({'$match': kw.to_query()})
         return self
 
@@ -493,7 +510,7 @@ class Aggregation:
 
     def export(self,
                path: 'Path or Workbook',
-               sheet='sheet1',
+               sheet='Sheet1',
                projects=None,
                range_="A1",
                columns=None,
@@ -503,7 +520,7 @@ class Aggregation:
             path.add_table(range_,
                            sheet=sheet,
                            columns=columns,
-                           data=self.scalar(projects))
+                           data=self.scalar(*projects))
         else:
             with Path(path).write_xlsx(force=force) as book:
                 self.export(book, sheet, projects, range_, columns)
