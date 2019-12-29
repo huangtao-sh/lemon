@@ -434,8 +434,8 @@ class Aggregation:
     def match(self, *query):
         '''条件过滤'''
         if len(query) > 1:
-            kw = And(q.to_query() if hasattr(q, 'to_query') else q
-                     for q in query)
+            kw = And(
+                [q.to_query() if hasattr(q, 'to_query') else q for q in query])
         else:
             kw = query
         self.pipeline.append({'$match': kw.to_query()})
