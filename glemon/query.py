@@ -427,7 +427,7 @@ class Aggregation:
     def project(self, *args, **kw):
         '''过滤字段'''
         for arg in args:
-            kw[arg._name] = arg.to_project()
+            kw.update(arg.to_project())
         self.pipeline.append({'$project': kw})
         return self
 
