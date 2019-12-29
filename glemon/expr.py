@@ -49,6 +49,7 @@ OPERATORS = {
     'avg': '$avg',
     'first': '$first',
     'last': '$last',
+    'concat': '$concat',
 }
 
 
