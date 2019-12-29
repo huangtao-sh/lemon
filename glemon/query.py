@@ -7,7 +7,7 @@
 # 修订：2019-12-13 17:11 新增 export 功能
 
 # from pymongo import *
-from .expr import P, updater
+from .expr import P, updater, And
 from .paginate import Pagination
 from asyncio import wait
 from orange import ensure, tprint, Path
@@ -431,10 +431,13 @@ class Aggregation:
         self.pipeline.append({'$project': kw})
         return self
 
-    def match(self, kw):
+    def match(self, *query):
         '''条件过滤'''
-        if hasattr(kw, 'to_query'):
-            kw = kw.to_query()
+        if len(query) > 1:
+            kw = And(q.to_query() if hasattr(q, 'to_query') else q
+                     for q in query)
+        else:
+            kw = query
         self.pipeline.append({'$match': kw})
         return self
 
