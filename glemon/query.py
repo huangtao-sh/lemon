@@ -45,7 +45,6 @@ def _split(data, step=1000):
 
 class BaseQuery(object):
     '''查询基类'''
-
     def __init__(self, document):
         '''初始化'''
         self.document = document
@@ -428,7 +427,7 @@ class Aggregation:
     def project(self, *args, **kw):
         '''过滤字段'''
         for arg in args:
-            kw[arg._name] = not arg._neg
+            kw[arg._name] = arg.to_project()
         self.pipeline.append({'$project': kw})
         return self
 
