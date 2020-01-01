@@ -1,31 +1,16 @@
-from pymongo import MongoClient
-from asyncio import run, wait
-from orange import Path, limit, timeit, R
-from glemon import Document, P, enlist
-from glemon.expr import updater
-from pprint import pprint
-import re
-from glemon.load import LoadDocument
-from orange.xlsx import Header
-#print(P.abc.regex('abc').to_query())
-#print((P.abc == 'hello').to_update())
-#print(P.abc.unset().to_update())
+from glemon.load import LoadDocument as Document
+from glemon.bulk import BulkWrite
 
 
-class Test(LoadDocument):
-    _projects = enlist('a,b,c')
+class Test(Document):
+    _projects = '_id,a,b'
 
 
-def create():
-    for i in range(300, 350):
+def create_data(count):
+    for i in range(count):
         yield [f'a-{i}', f'b-{i}', f'c-{i}']
 
 
-Test.bulk_write(create(), drop=True)
-t = Test.aggregate()
-t.match(P.a > 'a-340')
-t.project(-P.id, P.a, P.b)
-t.export('~/test.xlsx',
-         projects=['a', 'b'],
-         columns=[Header('A1'), Header('B1')],
-         force=True)
+blk = BulkWrite(Test, data=create_data(10),keys='b',method='replace',upsert=False)
+for r in blk:
+    print(r)

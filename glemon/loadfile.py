@@ -207,7 +207,7 @@ class ImportFile(_Document):
     @classmethod
     def _importsave(cls, filename):
         from .loadcheck import LoadFile
-        LoadFile._save(cls.__name__, filename)
+        LoadFile.save(cls.__name__, filename)
 
     @classmethod
     def _proc_csv(cls, data, **kw):

@@ -97,7 +97,8 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
 
     @classmethod
     def bulk_write(cls,
-                   data: Data,
+                   data: Data = None,
+                   requests=None,
                    mapper: dict = None,
                    fields=None,
                    keys=None,
@@ -107,8 +108,15 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
                    method='insert'):
         if method == 'insert' and drop:
             cls.objects.delete()
-        return BulkWrite(cls, data, mapper, fields, keys, upsert, drop,
-                         method).execute(ordered=ordered)
+        return BulkWrite(cls,
+                         requests=requests,
+                         data=data,
+                         mapper=mapper,
+                         fields=fields,
+                         keys=keys,
+                         upsert=upsert,
+                         drop=drop,
+                         method=method).execute(ordered=ordered)
 
     @property
     def id(self):

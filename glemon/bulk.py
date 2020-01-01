@@ -69,7 +69,8 @@ METHOD = {
 class BulkWrite(object):
     def __init__(self,
                  document: 'Document',
-                 data: Data,
+                 requests=None,
+                 data: Data = None,
                  mapper: dict = None,
                  fields=None,
                  keys=None,
@@ -77,6 +78,7 @@ class BulkWrite(object):
                  drop=True,
                  method='insert'):
         self.document = document
+        self.requests = requests
         if not isinstance(data, Data):
             data = Data(data)
         self._data = data
@@ -90,38 +92,41 @@ class BulkWrite(object):
         self.upsert = upsert
 
     def __iter__(self):
-        method = self.method
-        if method == InsertOne:
-            fields = self.fields
-            yield from self._data.converter(lambda row: InsertOne(
-                dict(zip(fields, row))))
-        elif method in (UpdateOne, UpdateMany):
-            key_indexes, value_indexes, fields = [], [], []
-            keys = self.keys
-
-            for i, f in enumerate(self.fields):
-                if f in keys:
-                    key_indexes.append(i)
-                else:
-                    fields.append(f)
-                    value_indexes.append(i)
-            yield from self._data.converter(lambda row: method(
-                dict(zip(keys, [row[i] for i in key_indexes])),
-                {'$set': dict(zip(fields, [row[i] for i in value_indexes]))},
-                upsert=self.upsert))
-        elif method == ReplaceOne:
-            key_indexes, fields = [], self.fields
-            keys = self.keys
-
-            for i, f in enumerate(self.fields):
-                if f in keys:
-                    key_indexes.append(i)
-            yield from self._data.converter(lambda row: ReplaceOne(
-                dict(zip(keys, [row[i] for i in key_indexes])),
-                dict(zip(fields, row)),
-                upsert=self.upsert))
+        if self.requests:
+            yield from self.requests
         else:
-            raise Exception('method 参数错误')
+            method = self.method
+            if method == InsertOne:
+                fields = self.fields
+                yield from self._data.converter(
+                    lambda row: InsertOne(dict(zip(fields, row))))
+            elif method in (UpdateOne, UpdateMany):
+                key_indexes, value_indexes, fields = [], [], []
+                keys = self.keys
+
+                for i, f in enumerate(self.fields):
+                    if f in keys:
+                        key_indexes.append(i)
+                    else:
+                        fields.append(f)
+                        value_indexes.append(i)
+                yield from self._data.converter(lambda row: method(
+                    dict(zip(keys, [row[i] for i in key_indexes])),
+                    {'$set': dict(zip(fields, [row[i] for i in value_indexes]))},
+                    upsert=self.upsert))
+            elif method == ReplaceOne:
+                key_indexes, fields = [], self.fields
+                keys = self.keys
+
+                for i, f in enumerate(self.fields):
+                    if f in keys:
+                        key_indexes.append(i)
+                yield from self._data.converter(lambda row: ReplaceOne(
+                    dict(zip(keys, [row[i] for i in key_indexes])),
+                    dict(zip(fields, row)),
+                    upsert=self.upsert))
+            else:
+                raise Exception('method 参数错误')
 
     def execute(self,
                 ordered=True,

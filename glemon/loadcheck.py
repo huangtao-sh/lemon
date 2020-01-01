@@ -51,7 +51,7 @@ class LoadFile(Document):
 
     @classmethod
     @deprecate('dup_check')
-    def _save(cls, category, *files):
+    def save(cls, category, *files):
         for filename in files:
             filename, mtime = get(filename)
             cls.objects.filter(category=category,
