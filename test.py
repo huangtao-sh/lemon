@@ -1,5 +1,6 @@
 from glemon.load import LoadDocument as Document
-from glemon.bulk import BulkWrite
+from pymongo import InsertOne
+from glemon.bulk import BulkWrite, enlist
 
 
 class Test(Document):
@@ -8,9 +9,11 @@ class Test(Document):
 
 def create_data(count):
     for i in range(count):
-        yield [f'a-{i}', f'b-{i}', f'c-{i}']
+        yield InsertOne(
+            dict(zip(enlist(Test._projects), [f'a-{i}', f'b-{i}', f'c-{i}'])))
 
+Test.drop()
+Test.bulk_write(requests=create_data(100))
 
-blk = BulkWrite(Test, data=create_data(10),keys='b',method='replace',upsert=False)
-for r in blk:
+for r in Test.find():
     print(r)

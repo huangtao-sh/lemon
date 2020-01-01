@@ -62,9 +62,16 @@ class LoadDocument(Document):
                     mapper[v] = idx
             if converter:
                 data.converter(converter)
-        if drop and method in ('insert', 'insertOne'):
+        if drop and method in ('insert', 'InsertOne'):
             cls.drop()
-        return BulkWrite(cls, data, mapper, fields, keys, upsert, drop, method)
+        return BulkWrite(cls,
+                         data=data,
+                         mapper=mapper,
+                         fields=fields,
+                         keys=keys,
+                         upsert=upsert,
+                         drop=drop,
+                         method=method)
 
     @classmethod
     def load_file(cls, file, options=None, dry=False):
@@ -74,7 +81,7 @@ class LoadDocument(Document):
             checker = LoadFile.dupcheck(file, cls.__name__)
 
         data = cls.read_file(file, **options.pop('file', {}))
-        blk = cls._bulk(data, **options)
+        blk = cls._bulk(data=data, **options)
         if blk:
             if dry:
                 for x in blk:
@@ -96,7 +103,7 @@ class LoadDocument(Document):
                 print(f'{file.name} 已导入，忽略')
                 return
         data = cls.read_file(file, **options.pop('file', {}))
-        blk = cls._bulk(data, **options)
+        blk = cls._bulk(data=data, **options)
         if blk:
             result = await blk.sync_execute()
             if dupcheck:

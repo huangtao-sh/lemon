@@ -79,17 +79,20 @@ class BulkWrite(object):
                  method='insert'):
         self.document = document
         self.requests = requests
-        if not isinstance(data, Data):
-            data = Data(data)
-        self._data = data
-        if mapper:
-            self.fields = mapper.keys()
-            self._data.columns(mapper.values())
-        else:
-            self.fields = enlist(fields or document._projects)
-        self.keys = enlist(keys or '_id')
-        self.method = METHOD.get(method, None)
-        self.upsert = upsert
+        if data:
+            if not isinstance(data, Data):
+                data = Data(data)
+            self.method = METHOD.get(method, None)
+            if mapper:
+                self.fields = mapper.keys()
+                data.columns(mapper.values())
+            else:
+                self.fields = enlist(fields or document._projects)
+            
+            self._data = data
+            self.keys = enlist(keys or '_id')
+            self.method = METHOD.get(method, None)
+            self.upsert = upsert
 
     def __iter__(self):
         if self.requests:
