@@ -21,13 +21,16 @@ class BulkResult(object):
                     'nUpserted'):
             self.result[key] = 0
 
-    def __call__(self, other):
+    def __add__(self, other):
         other = other.bulk_api_result
         for key in ('writeErrors', 'upserted'):
             self.result[key].extend(other[key])
         for key in ('nInserted', 'nRemoved', 'nMatched', 'nModified',
                     'nUpserted'):
             self.result[key] += other[key]
+        return self
+
+    __call__ = __add__
 
     def __str__(self):
         return '\t'.join(f'{key}:{self.result.get(key):,d}'
@@ -88,7 +91,7 @@ class BulkWrite(object):
                 data.columns(mapper.values())
             else:
                 self.fields = enlist(fields or document._projects)
-            
+
             self._data = data
             self.keys = enlist(keys or '_id')
             self.method = METHOD.get(method, None)
@@ -114,8 +117,10 @@ class BulkWrite(object):
                         fields.append(f)
                         value_indexes.append(i)
                 yield from self._data.converter(lambda row: method(
-                    dict(zip(keys, [row[i] for i in key_indexes])),
-                    {'$set': dict(zip(fields, [row[i] for i in value_indexes]))},
+                    dict(zip(keys, [row[i] for i in key_indexes])), {
+                        '$set': dict(
+                            zip(fields, [row[i] for i in value_indexes]))
+                    },
                     upsert=self.upsert))
             elif method == ReplaceOne:
                 key_indexes, fields = [], self.fields

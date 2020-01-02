@@ -11,6 +11,8 @@ import glemon.config
 import glemon.shadow
 import glemon.expr
 from glemon.document import Descriptor
+from glemon import document
+document.MAX_BULK_SIZE = 10
 
 loop = get_event_loop()
 
@@ -187,3 +189,25 @@ class TestLemon(unittest.TestCase):
         profile.test_version = ver
         ver = Shadow.read('test_version')
         self.assertEqual(ver, profile.test_version)
+
+    def testBulkWrite(self):
+        from pymongo import InsertOne
+
+        def gen_data(count):
+            for i in range(count):
+                yield InsertOne({'a': i, 'b': i, 'c': 'i'})
+
+        count = 105
+        Test._bulk_write(gen_data(count))
+        self.assertEqual(count, Test.objects.count())
+
+    def testSyncBulkWrite(self):
+        from pymongo import InsertOne
+
+        def gen_data(count):
+            for i in range(count):
+                yield InsertOne({'a': i, 'b': i, 'c': 'i'})
+
+        count = 105
+        run(Test.sync_bulk_write(gen_data(count)))
+        self.assertEqual(count, Test.objects.count())

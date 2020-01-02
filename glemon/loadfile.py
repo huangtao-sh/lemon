@@ -13,10 +13,7 @@ from pymongo import InsertOne, ReplaceOne, UpdateOne
 from collections import ChainMap
 from functools import partial
 from collections import defaultdict
-
-
-def enlist(fields):
-    return fields.split(',') if isinstance(fields, str) else fields
+from .utils import enlist
 
 
 class FileImported(Exception):

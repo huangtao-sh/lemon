@@ -12,8 +12,10 @@ from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data, 
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
-from .bulk import BulkWrite
+from .bulk import BulkWrite, BulkResult
 from bson import ObjectId
+
+MAX_BULK_SIZE = 100000
 
 
 class DocumentMeta(type):
@@ -94,6 +96,38 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     @classmethod
     def find(cls, *args, **kw) -> BaseQuery:
         return cls.objects.filter(*args, **kw)
+
+    @classmethod
+    def _bulk_write(cls,
+                    requests,
+                    ordered=True,
+                    bypass_document_validation=False,
+                    session=None):
+        collection = cls.get_collection()
+        result = BulkResult()
+        for reqs in split(requests, MAX_BULK_SIZE):
+            result += collection.bulk_write(
+                reqs,
+                ordered=True,
+                bypass_document_validation=bypass_document_validation,
+                session=session)
+        return result
+
+    @classmethod
+    async def sync_bulk_write(cls,
+                              requests,
+                              ordered=True,
+                              bypass_document_validation=False,
+                              session=None):
+        collection = cls.get_collection(sync=True)
+        result = BulkResult()
+        for reqs in split(requests, MAX_BULK_SIZE):
+            result += await collection.bulk_write(
+                reqs,
+                ordered=True,
+                bypass_document_validation=bypass_document_validation,
+                session=session)
+        return result
 
     @classmethod
     def bulk_write(cls,
