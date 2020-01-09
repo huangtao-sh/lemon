@@ -1,4 +1,4 @@
-from glemon.load import LoadDocument as Document
+from glemon.load import LoadDocument as Document,P
 from pymongo import InsertOne
 from glemon.bulk import BulkWrite, enlist
 
@@ -15,5 +15,7 @@ def create_data(count):
 Test.drop()
 Test.bulk_write(requests=create_data(100))
 
-for r in Test.find():
-    print(r)
+r=Test.find().first()
+print(r)
+print(r.update(name='huangtao'))
+print(Test.find().first())

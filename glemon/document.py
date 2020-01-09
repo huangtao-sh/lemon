@@ -14,6 +14,7 @@ from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
 from .bulk import BulkWrite, BulkResult
 from bson import ObjectId
+from .expr import updater
 
 MAX_BULK_SIZE = 100000
 
@@ -228,8 +229,16 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             super().__setattr__(name, value)
 
     def update(self, *args, **kw):
-        self._modified = True
-        self.update(*args, **kw)
+        ''' 更新文档的数据，直接提交数据库'''
+        if self._id:
+            return self.get_collection().find_one_and_update(
+                {'_id': self._id},
+                updater(*args, **kw),
+                upsert=False,
+                return_document=True,
+            )
+        else:
+            raise Exception('The object has no _id.')
 
     def show(self, profile=None, format_spec=None, sep='    '):
         profile = profile or self._profile

@@ -211,3 +211,16 @@ class TestLemon(unittest.TestCase):
         count = 105
         run(Test.sync_bulk_write(gen_data(count)))
         self.assertEqual(count, Test.objects.count())
+
+    def test_Obj_update(self):
+        Test(_id='hunter', b='name', c=1).save()
+        a = Test.find().first()
+        name = 'huangtao'
+        b = a.update(name=name)
+        self.assertEqual(b['name'], name)
+        b = a.update(P.name == name, P.c.inc(10))
+        self.assertEqual(b['name'], name)
+        self.assertEqual(b['c'], 11)
+        o=Test.find(P._id=='hunter').first()
+        self.assertEqual(o['c'],11)
+        self.assertEqual(o['name'],name)
