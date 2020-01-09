@@ -235,8 +235,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
                 {'_id': self._id},
                 updater(*args, **kw),
                 upsert=False,
-                return_document=True,
-            )
+                return_document=True)
         else:
             raise Exception('The object has no _id.')
 
