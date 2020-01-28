@@ -1,5 +1,6 @@
-from glemon.load import LoadDocument as Document,P
-from pymongo import InsertOne
+from glemon import Document, P
+from glemon.document import read_data
+from orange import Path
 from glemon.bulk import BulkWrite, enlist
 
 
@@ -7,15 +8,20 @@ class Test(Document):
     _projects = '_id,a,b'
 
 
-def create_data(count):
-    for i in range(count):
-        yield InsertOne(
-            dict(zip(enlist(Test._projects), [f'a-{i}', f'b-{i}', f'c-{i}'])))
+text = '''A123B12C15
+B123D12C16
+C123D12E17
+'''
 
-Test.drop()
-Test.bulk_write(requests=create_data(100))
+with Path.tempfile(data=text, suffix='.csv')as p:
+    options={
+        'encoding':'gbk',
+        'errors':'strict',
+        'offsets':(0,4,7),
+        'skip_header':False,
+        'method':'insert',
+        'upsert':False
 
-r=Test.find().first()
-print(r)
-print(r.update(name='huangtao'))
-print(Test.find().first())
+    }
+    Test.drop()
+    Test.load_file(p,options,dry=True)

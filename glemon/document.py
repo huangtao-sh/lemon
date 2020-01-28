@@ -8,15 +8,39 @@
 # 修改：2018-10-15 22:03 增加 show, profile 等功能
 # 修订：2019-12-21 16:10 进行修订
 
-from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data, classproperty
+from orange import convert_cls_name, cachedproperty, wlen, tprint, split, Data, classproperty, limit
 from .query import BaseQuery, Aggregation, AsyncioQuery, P
 from .config import config, get_client
 from .loadfile import ImportFile, FileImported, enlist
 from .bulk import BulkWrite, BulkResult
 from bson import ObjectId
 from .expr import updater
-
+from .utils import extractdict
 MAX_BULK_SIZE = 100000
+READER_OPTIONS = ('encoding',
+                  'errors',
+                  'skip_header',
+                  'include',
+                  'exclude',
+                  'filter',
+                  'converter',
+                  'sep',
+                  'offsets',
+                  'filter',
+                  'quote')
+
+
+def read_data(path, options):
+    reader = options.get('reader')
+    if callable(reader):
+        data = reader(path)
+    else:
+        read_options = {
+            key: options.pop(key)
+            for key in READER_OPTIONS if key in options
+        }
+        data = path.read_data(**read_options)
+    return data
 
 
 class DocumentMeta(type):
@@ -72,6 +96,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
     _textfmt = ''  # 文本格式
     _htmlfmt = ''  # 超文本格式
     _profile = {}  # profile 属性时使用
+    load_options = {}
 
     @classmethod
     def get_collection(cls, sync=False):
@@ -112,6 +137,38 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
                 ordered=True,
                 bypass_document_validation=bypass_document_validation,
                 session=session)
+        return result
+
+    @classmethod
+    def load_file(cls, path, options, dry=False):
+        from .loadcheck import dup_check
+        options = (options or cls.load_options).copy()
+        dupcheck = options.pop('dupcheck', False)
+        if dupcheck:
+            checker = dup_check(path, cls.__name__)
+        data = read_data(path, options)
+        blk = BulkWrite(cls, data=data, **options)
+        if dry:
+            for obj in limit(blk, 10):
+                print(obj)
+        else:
+            result = blk.execute()
+            if dupcheck:
+                checker.done()
+            return result
+
+    @classmethod
+    async def sync_load_file(cls, path, options):
+        from .loadcheck import dup_check
+        options = (options or cls.load_options).copy()
+        dupcheck = options.get('dupcheck')
+        if dupcheck:
+            checker = dup_check(path, cls.__name__)
+        data = read_data(path, options)
+        blk = BulkWrite(cls, data=data, **options)
+        result = await blk.sync_execute()
+        if dupcheck:
+            checker.done()
         return result
 
     @classmethod

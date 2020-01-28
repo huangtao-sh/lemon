@@ -59,7 +59,10 @@ class TestLoad(unittest.TestCase):
         TestLoadFile.drop()
 
     def testEncoding(self):
-        options = {'drop': True}
+        options = {
+            'dupcheck': False,
+
+        }
         for code in ('utf8', 'gbk', 'cp936', 'gb2312'):
             with Path.tempfile(text.encode(code), suffix='.csv') as f:
                 r = TestLoadFile.loadfile(f, options)
@@ -80,12 +83,19 @@ class TestLoad(unittest.TestCase):
             self.assertEqual(r.c, '黄涛')
 
     def testDupCheck(self):
-        options = {'dupcheck': True}
+        options = {
+            'drop': True,
+            'skip_header': False,
+            'sep': ',',
+            'dupcheck':True,
+            'converter': {
+                3: int,
+            }}
         with Path.tempfile(text, suffix='.del') as f:
-            r = TestLoadFile.loadfile(f, options)
+            r = TestLoadFile.load_file(f, options)
             self.assertEqual(r.inserted_count, 3)
             with self.assertRaises(FileImported):
-                r = TestLoadFile.loadfile(f, options)
+                r = TestLoadFile.load_file(f, options)
 
     def testInsert2(self):
         options = {

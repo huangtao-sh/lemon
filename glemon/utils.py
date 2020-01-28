@@ -8,3 +8,7 @@
 
 def enlist(fields):
     return fields.split(',') if isinstance(fields, str) else fields
+
+
+def extractdict(d: dict, keys: 'iterable'):
+    return {key: d[key]for key in keys if key in d}
