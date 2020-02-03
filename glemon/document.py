@@ -147,11 +147,14 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         if dupcheck:
             checker = dup_check(path, cls.__name__)
         data = read_data(path, options)
+        drop=options.get('drop')
         blk = BulkWrite(cls, data=data, **options)
         if dry:
             for obj in limit(blk, 10):
                 print(obj)
         else:
+            if drop:
+                cls.drop()
             result = blk.execute()
             if dupcheck:
                 checker.done()
@@ -165,7 +168,10 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         if dupcheck:
             checker = dup_check(path, cls.__name__)
         data = read_data(path, options)
+        drop=options.get('drop')
         blk = BulkWrite(cls, data=data, **options)
+        if drop:
+            cls.drop()
         result = await blk.sync_execute()
         if dupcheck:
             checker.done()
