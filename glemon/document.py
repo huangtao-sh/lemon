@@ -140,7 +140,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
         return result
 
     @classmethod
-    def load_file(cls, path, options, dry=False):
+    def load_file(cls, path, options=None, dry=False):
         from .loadcheck import dup_check
         options = (options or cls.load_options).copy()
         dupcheck = options.pop('dupcheck', False)
@@ -158,7 +158,7 @@ class Document(dict, ImportFile, metaclass=DocumentMeta):
             return result
 
     @classmethod
-    async def sync_load_file(cls, path, options):
+    async def sync_load_file(cls, path, options=None):
         from .loadcheck import dup_check
         options = (options or cls.load_options).copy()
         dupcheck = options.get('dupcheck')
